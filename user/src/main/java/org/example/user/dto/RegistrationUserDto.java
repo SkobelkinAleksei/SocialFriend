@@ -6,6 +6,7 @@ import lombok.*;
 import java.io.Serializable;
 import java.time.LocalDate;
 
+@Setter
 @Getter
 @EqualsAndHashCode
 @NoArgsConstructor

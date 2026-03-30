@@ -2,6 +2,7 @@ package org.example.security.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.eventskafka.UserRegisteredEvent;
+import org.example.security.entity.SecurityUserDetails;
 import org.example.security.entity.UserSecurity;
 import org.example.security.repository.UserSecurityRepository;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -22,11 +23,7 @@ public class SecurityUserService implements UserDetailsService {
         UserSecurity user = repository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Такой пользователь не был найден: " + username));
 
-        return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getUsername())
-                .password(user.getPassword())
-                .authorities(Collections.emptyList())
-                .build();
+        return new SecurityUserDetails(user);
     }
 
     public void createUserFromEvent(UserRegisteredEvent event) {

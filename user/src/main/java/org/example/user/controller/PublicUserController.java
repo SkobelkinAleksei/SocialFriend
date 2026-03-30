@@ -11,9 +11,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/social/register")
+@RequestMapping("/api/v1/social/registration")
 @RestController
 public class PublicUserController {
     private final UserService userService;
