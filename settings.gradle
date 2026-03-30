@@ -1,7 +1,8 @@
 rootProject.name = 'SocialFriend'
 
-//include 'social-common'
 include 'user'
+include 'security'
+//include 'social-common'
 //include 'auth-service'
 //include 'api-gateway'
 //include 'post-service'
