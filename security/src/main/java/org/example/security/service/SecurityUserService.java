@@ -1,6 +1,7 @@
 package org.example.security.service;
 
 import lombok.RequiredArgsConstructor;
+import org.example.eventskafka.UserRegisteredEvent;
 import org.example.security.entity.UserSecurity;
 import org.example.security.repository.UserSecurityRepository;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -12,7 +13,7 @@ import java.util.Collections;
 
 @Service
 @RequiredArgsConstructor
-public class SecurityUserDetailsService implements UserDetailsService {
+public class SecurityUserService implements UserDetailsService {
 
     private final UserSecurityRepository repository;
 
@@ -26,5 +27,14 @@ public class SecurityUserDetailsService implements UserDetailsService {
                 .password(user.getPassword())
                 .authorities(Collections.emptyList())
                 .build();
+    }
+
+    public void createUserFromEvent(UserRegisteredEvent event) {
+        UserSecurity userSecurity = new UserSecurity();
+        userSecurity.setId(event.getId());
+        userSecurity.setUsername(event.getUsername());
+        userSecurity.setPassword(event.getPasswordHash());
+
+        repository.save(userSecurity);
     }
 }

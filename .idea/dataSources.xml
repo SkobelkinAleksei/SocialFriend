@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="social_security_db@localhost" uuid="bf415af0-48bd-45a6-96df-fd03478ec5f1">
+    <data-source source="LOCAL" name="social_user_db@localhost" uuid="2c32def8-23c9-4071-939c-49932b9f57f0">
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>
-      <jdbc-url>jdbc:postgresql://localhost:5432/social_security_db</jdbc-url>
+      <jdbc-url>jdbc:postgresql://localhost:5432/social_user_db</jdbc-url>
       <jdbc-additional-properties>
         <property name="com.intellij.clouds.kubernetes.db.host.port" />
         <property name="com.intellij.clouds.kubernetes.db.enabled" value="false" />
@@ -13,11 +13,11 @@
       </jdbc-additional-properties>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
-    <data-source source="LOCAL" name="social_user_db@localhost" uuid="2c32def8-23c9-4071-939c-49932b9f57f0">
+    <data-source source="LOCAL" name="social_security_db@localhost" uuid="0c318814-6fa7-44c0-9708-0e5541619328">
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>
-      <jdbc-url>jdbc:postgresql://localhost:5432/social_user_db</jdbc-url>
+      <jdbc-url>jdbc:postgresql://localhost:5432/social_security_db</jdbc-url>
       <jdbc-additional-properties>
         <property name="com.intellij.clouds.kubernetes.db.host.port" />
         <property name="com.intellij.clouds.kubernetes.db.enabled" value="false" />
