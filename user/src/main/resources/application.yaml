@@ -19,8 +19,8 @@ spring:
 
 logging:
   level:
-    org.springframework.cloud.gateway: DEBUG             # ??????????? ??? Spring Cloud Gateway
-    reactor.netty.http.client: DEBUG                      # ??????????? ??? ??????????? HTTP ???????
-    org.springframework.web: DEBUG                        # ??????????? ??? Spring Web
-    org.hibernate.SQL: DEBUG                               # ??????????? SQL-???????? Hibernate
-    org.springframework.orm.jpa: DEBUG                    # ??????????? ???????? JPA
+    org.springframework.cloud.gateway: DEBUG             # Логирование для Spring Cloud Gateway
+    reactor.netty.http.client: DEBUG                      # Логирование для реактивного HTTP клиента
+    org.springframework.web: DEBUG                        # Логирование для Spring Web
+    org.hibernate.SQL: DEBUG                               # Логирование SQL-запросов Hibernate
+    org.springframework.orm.jpa: DEBUG                    # Логирование запросов JPA
