@@ -3,6 +3,7 @@ package org.example.user.service;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.eventskafka.UserRegisteredEvent;
 import org.example.user.dto.*;
 import org.example.user.entity.UserEntity;
 import org.example.user.mapper.UserMapper;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +32,8 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final UserLookupService userLookupService;
     private final UserUpdateService userUpdateService;
+
+    private final KafkaTemplate<String, Object> kafkaTemplate;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -53,9 +57,19 @@ public class UserServiceImpl implements UserService {
         userEntity.setPassword(passwordEncoder.encode(registrationUserDto.getPassword()));
         userEntity.setTimeStamp(LocalDateTime.now());
 
-        UserDto userDto = userMapper.toDto(userRepository.save(userEntity));
+        UserEntity saved = userRepository.save(userEntity);
+        UserDto userDto = userMapper.toDto(saved);
 
-        log.info("[INFO] Пользователь успешно создан с id: {}", userDto.getUserId());
+        UserRegisteredEvent event = new UserRegisteredEvent(
+                saved.getId(),
+                saved.getEmail(),
+                saved.getPassword(),
+                saved.getTimeStamp()
+        );
+        // Отправляем в Kafka
+        kafkaTemplate.send("user-registered", event);
+
+        log.info("[INFO] Пользователь успешно создан и событие отправлено в Kafka с id: {}", userDto.getUserId());
         return userDto;
     }
 
