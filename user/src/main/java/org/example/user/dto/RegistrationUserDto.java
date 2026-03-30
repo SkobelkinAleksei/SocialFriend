@@ -30,7 +30,7 @@ public class RegistrationUserDto implements Serializable {
 
     @NotBlank(message = "Пароль не может быть пустым.")
     @Pattern(
-            regexp = "^(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d]{8,100}$",
+            regexp = "^(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d!]{8,100}$",
             message = "Пароль должен содержать хотя бы одну заглавную букву," +
                     " хотя бы одну цифру, только английские символы и иметь длину от 8 до 100 символов."
     )

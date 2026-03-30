@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/social/register/")
+@RequestMapping("/api/v1/social/register")
 @RestController
 public class PublicUserController {
     private final UserService userService;
