@@ -6,7 +6,7 @@ import java.util.List;
 
 public interface UserService {
     UserDto signUp(RegistrationUserDto registrationUserDto);
-    UserDto getUserById(Long userId);
+//    UserDto getUserById(Long userId);
     UserDto getUserByEmail(String email);
     UserFullDto getMyProfile(Long userId);
     UserDto updateUserAccount(Long userId, UpdateUserDto updateAccountUser);
