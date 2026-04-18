@@ -10,10 +10,16 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
 @Component
 public class JwtGlobalFilter implements GlobalFilter, Ordered {
 
     private final JwtUtils jwtUtils;
+    private final List<String> openEndpoints = List.of(
+            "/api/v1/social/registration/signUp",
+            "/api/v1/social/auth/login"
+    );
 
     public JwtGlobalFilter(JwtUtils jwtUtils) {
         this.jwtUtils = jwtUtils;
@@ -21,6 +27,16 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        String path = exchange.getRequest().getURI().getPath();
+
+        // Проверяем, есть ли путь в списке открытых
+        boolean isApiOpen = openEndpoints.stream()
+                .anyMatch(path::contains);
+
+        if (isApiOpen) {
+            return chain.filter(exchange);
+        }
+
         String authHeader = exchange
                 .getRequest()
                 .getHeaders()
