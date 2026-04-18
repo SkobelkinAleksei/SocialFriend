@@ -3,6 +3,7 @@ package org.example.user.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -38,6 +39,7 @@ public class UserEntity {
     @Column(columnDefinition = "DATE", name = "birthday", nullable = false)
     private LocalDate birthday;
 
+    @CreationTimestamp
     @Column(columnDefinition = "TIMESTAMP(0)", name = "time_stamp")
     private LocalDateTime timeStamp;
 }

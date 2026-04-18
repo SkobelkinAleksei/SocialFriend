@@ -2,7 +2,7 @@ package org.example.security.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.eventskafka.UserRegisteredEvent;
+import com.example.common.kafka.UserRegisteredEvent;
 import org.example.security.entity.SecurityUserDetails;
 import org.example.security.entity.UserSecurity;
 import org.example.security.repository.UserSecurityRepository;
@@ -36,7 +36,7 @@ public class SecurityUserService implements UserDetailsService {
         userSecurity.setPassword(event.getPasswordHash());
 
         repository.save(userSecurity);
-        log.info("[SecurityUserService - INFO] Запись безопасности успешно создана для пользователя ID: {}", event.getId());
+        log.info("[SecurityUserService - INFO] Запись успешно создана для пользователя ID: {}", event.getId());
     }
 
     @Transactional

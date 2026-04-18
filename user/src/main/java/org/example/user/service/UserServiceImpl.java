@@ -3,9 +3,9 @@ package org.example.user.service;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.eventskafka.UserEmailUpdatedEvent;
-import org.example.eventskafka.UserPasswordUpdatedEvent;
-import org.example.eventskafka.UserRegisteredEvent;
+import com.example.common.kafka.UserEmailUpdatedEvent;
+import com.example.common.kafka.UserPasswordUpdatedEvent;
+import com.example.common.kafka.UserRegisteredEvent;
 import org.example.user.dto.*;
 import org.example.user.entity.UserEntity;
 import org.example.user.mapper.UserMapper;
@@ -57,7 +57,6 @@ public class UserServiceImpl implements UserService {
 
         UserEntity userEntity = userMapper.toEntity(registrationUserDto);
         userEntity.setPassword(passwordEncoder.encode(registrationUserDto.getPassword()));
-        userEntity.setTimeStamp(LocalDateTime.now());
 
         UserEntity saved = userRepository.save(userEntity);
         UserDto userDto = userMapper.toDto(saved);

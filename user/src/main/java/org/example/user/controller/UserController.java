@@ -26,27 +26,6 @@ public class UserController {
         return ResponseEntity.ok().body(userService.getMyProfile(currentUserId));
     }
 
-    @GetMapping("/search/by-email")
-    public ResponseEntity<UserDto> searchUserByEmail(
-            @RequestParam String email
-    ) {
-        log.info("[UserController - INFO] Пришел запрос на поиск пользователя по email: {}", email);
-        return ResponseEntity.ok().body(userService.searchUserByEmail(email));
-    }
-
-    @GetMapping("/search")
-    public ResponseEntity<List<UserDto>> search(
-            @RequestHeader("X-User-Id") String userId,
-            @RequestBody(required = false) UserFilterDto filter,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
-        log.info("[UserController - INFO] Пришел запрос на поиск пользователей по фильтру: {}, страница: {}, размер: {}",
-                filter, page, size);
-        Long currentUserId = Long.parseLong(userId);
-        return ResponseEntity.ok().body(userService.searchUsers(currentUserId, filter, page, size));
-    }
-
     @PutMapping("/me")
     public ResponseEntity<UserDto> updateUserAccount(
             @Valid @RequestBody UpdateUserDto updateAccountUser,
@@ -66,5 +45,26 @@ public class UserController {
         log.info("[UserController - INFO] Пришел запрос на обновление пароля пользователя с id: {}", currentUserId);
         userService.updatePassword(currentUserId, updatePasswordUserDto);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/search/by-email")
+    public ResponseEntity<UserDto> searchUserByEmail(
+            @RequestParam String email
+    ) {
+        log.info("[UserController - INFO] Пришел запрос на поиск пользователя по email: {}", email);
+        return ResponseEntity.ok().body(userService.searchUserByEmail(email));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<UserDto>> search(
+            @RequestHeader("X-User-Id") String userId,
+            @RequestBody(required = false) UserFilterDto filter,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        log.info("[UserController - INFO] Пришел запрос на поиск пользователей по фильтру: {}, страница: {}, размер: {}",
+                filter, page, size);
+        Long currentUserId = Long.parseLong(userId);
+        return ResponseEntity.ok().body(userService.searchUsers(currentUserId, filter, page, size));
     }
 }
