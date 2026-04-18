@@ -1,4 +1,4 @@
-package org.example.eventskafka.user;
+package org.example.eventskafka;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

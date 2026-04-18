@@ -2,7 +2,7 @@ package org.example.security.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.eventskafka.user.UserRegisteredEvent;
+import org.example.eventskafka.UserRegisteredEvent;
 import org.example.security.entity.SecurityUserDetails;
 import org.example.security.entity.UserSecurity;
 import org.example.security.repository.UserSecurityRepository;

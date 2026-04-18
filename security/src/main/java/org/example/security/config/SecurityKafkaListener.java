@@ -2,9 +2,9 @@ package org.example.security.config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.eventskafka.user.UserEmailUpdatedEvent;
-import org.example.eventskafka.user.UserPasswordUpdatedEvent;
-import org.example.eventskafka.user.UserRegisteredEvent;
+import org.example.eventskafka.UserEmailUpdatedEvent;
+import org.example.eventskafka.UserPasswordUpdatedEvent;
+import org.example.eventskafka.UserRegisteredEvent;
 import org.example.security.service.SecurityUserService;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;

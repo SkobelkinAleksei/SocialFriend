@@ -35,9 +35,9 @@ public class UserEntity {
     @Column(name = "password", nullable = false, length = 100)
     private String password;
 
-    @Column(columnDefinition = "TIMESTAMP", name = "birthday", nullable = false)
+    @Column(columnDefinition = "DATE", name = "birthday", nullable = false)
     private LocalDate birthday;
 
-    @Column(columnDefinition = "TIMESTAMP", name = "time_stamp")
+    @Column(columnDefinition = "TIMESTAMP(0)", name = "time_stamp")
     private LocalDateTime timeStamp;
 }
