@@ -19,19 +19,19 @@ public class UserController {
 
     @GetMapping("/me")
     public ResponseEntity<UserFullDto> getMyProfile(
-            @RequestParam Long currentUserId
+            @RequestHeader("X-User-Id") String userId
     ) {
-//        Long currentUserId = SecurityUtil.getCurrentUserId();
-//        log.info("[INFO] Пришел запрос на получение профиля пользователя с id: {}", currentUserId);
+        Long currentUserId = Long.parseLong(userId);
+        log.info("[INFO] Пришел запрос на получение профиля пользователя с id: {}", currentUserId);
         return ResponseEntity.ok().body(userService.getMyProfile(currentUserId));
     }
 
     @GetMapping("/post")
     public ResponseEntity<UserDto> getUserById(
-            @RequestParam Long currentUserId
+            @RequestHeader("X-User-Id") String userId
     ) {
-//        Long currentUserId = SecurityUtil.getCurrentUserId();
-//        log.info("[INFO] Пришел запрос на получение пользователя по id: {}", currentUserId);
+        Long currentUserId = Long.parseLong(userId);
+        log.info("[INFO] Пришел запрос на получение пользователя по id: {}", currentUserId);
         return ResponseEntity.ok().body(userService.getUserById(currentUserId));
     }
 
@@ -63,19 +63,20 @@ public class UserController {
     @PutMapping("/account/update")
     public ResponseEntity<UserDto> updateUserAccount(
             @Valid @RequestBody UpdateUserDto updateAccountUser,
-            @RequestParam Long currentUserId
+            @RequestHeader("X-User-Id") String userId
     ) {
-//        Long currentUserId = SecurityUtil.getCurrentUserId();
-//        log.info("[INFO] Пришел запрос на обновление аккаунта пользователя с id: {}", currentUserId);
+        Long currentUserId = Long.parseLong(userId);
+        log.info("[INFO] Пришел запрос на обновление аккаунта пользователя с id: {}", currentUserId);
         return ResponseEntity.ok().body(userService.updateUserAccount(currentUserId, updateAccountUser));
     }
 
     @PutMapping("/account/update/pass")
     public ResponseEntity<Void> updatePasswordUser(
             @Valid @RequestBody UpdatePasswordUserDto updatePasswordUserDto,
-            @RequestParam Long currentUserId
+            @RequestHeader("X-User-Id") String userId
     ) {
-//        log.info("[INFO] Пришел запрос на обновление пароля пользователя с id: {}", currentUserId);
+        Long currentUserId = Long.parseLong(userId);
+        log.info("[INFO] Пришел запрос на обновление пароля пользователя с id: {}", currentUserId);
         userService.updatePassword(currentUserId, updatePasswordUserDto);
         return ResponseEntity.noContent().build();
     }

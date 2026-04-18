@@ -40,7 +40,4 @@ public class UserEntity {
 
     @Column(columnDefinition = "TIMESTAMP", name = "time_stamp")
     private LocalDateTime timeStamp;
-
-    @Column(name = "is_enabled")
-    private boolean isEnabled;
 }

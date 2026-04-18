@@ -3,6 +3,7 @@ package org.example.security.config;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.example.security.entity.SecurityUserDetails;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
@@ -21,10 +22,13 @@ public class JwtUtils {
     private final long jwtExpirationMs = 86400000L;
 
     public String generateToken(Authentication authentication) {
-        UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+
+        SecurityUserDetails securityUserDetails = (SecurityUserDetails) userDetails;
+        Long userId = securityUserDetails.getId();
 
         return Jwts.builder()
-                .subject(userPrincipal.getUsername())
+                .subject(String.valueOf(userId))
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
                 .signWith(jwtSecret)
