@@ -3,7 +3,9 @@ package org.example.user.service;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.eventskafka.UserRegisteredEvent;
+import org.example.eventskafka.user.UserEmailUpdatedEvent;
+import org.example.eventskafka.user.UserPasswordUpdatedEvent;
+import org.example.eventskafka.user.UserRegisteredEvent;
 import org.example.user.dto.*;
 import org.example.user.entity.UserEntity;
 import org.example.user.mapper.UserMapper;
@@ -87,7 +89,7 @@ public class UserServiceImpl implements UserService {
 
     @Transactional(readOnly = true)
     @Override
-    public UserDto getUserByEmail(String email) {
+    public UserDto searchUserByEmail(String email) {
         log.info("[UserServiceImpl - INFO] Поиск пользователя по email: {}", email);
         return userMapper.toDto(
                 userRepository.findByEmailIgnoreCase(email)
@@ -114,8 +116,16 @@ public class UserServiceImpl implements UserService {
         log.info("[UserServiceImpl - INFO] Обновление аккаунта пользователя с id: {}", userId);
         UserEntity userEntity = userLookupService.getById(userId);
 
+        boolean emailChanged =  updateAccountUser.getEmail() != null
+                && !userEntity.getEmail().equals(updateAccountUser.getEmail());
+
         UserDto userDto = userUpdateService.updateAccount(userEntity, updateAccountUser);
         log.info("[UserServiceImpl - INFO] Аккаунт пользователя: {} успешно обновлён", userDto);
+
+        if (emailChanged) {
+            log.info("[UserServiceImpl - INFO] Почта изменена. Отправка события в Kafka для userId: {}", userId);
+            kafkaTemplate.send("user-email-updated", new UserEmailUpdatedEvent(userId, userEntity.getEmail()));
+        }
 
         return userDto;
     }
@@ -128,6 +138,9 @@ public class UserServiceImpl implements UserService {
         userUpdateService.updatePassword(userEntity, updatePasswordUserDto);
         log.info("[UserServiceImpl - INFO] Пароль пользователя с id: {} успешно обновлён", userId);
         userRepository.save(userEntity);
+
+        kafkaTemplate.send("user-password-updated", new UserPasswordUpdatedEvent(userId, userEntity.getPassword()));
+        log.info("[UserServiceImpl - INFO] Отправка события о смене пароля в Kafka для userId: {}", userId);
     }
 
     @Transactional(readOnly = true)

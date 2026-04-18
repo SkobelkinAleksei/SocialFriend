@@ -1,4 +1,4 @@
-package org.example.eventskafka;
+package org.example.eventskafka.user;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;

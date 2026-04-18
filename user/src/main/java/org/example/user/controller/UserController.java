@@ -26,27 +26,12 @@ public class UserController {
         return ResponseEntity.ok().body(userService.getMyProfile(currentUserId));
     }
 
-//    @GetMapping("/post")
-//    public ResponseEntity<UserDto> getUserById(
-//            @RequestHeader("X-User-Id") String userId
-//    ) {
-//        Long currentUserId = Long.parseLong(userId);
-//        log.info("[INFO] Пришел запрос на получение пользователя по id: {}", currentUserId);
-//        return ResponseEntity.ok().body(userService.getUserById(currentUserId));
-//    }
-//
-//    @GetMapping("/public/{userId}")
-//    public ResponseEntity<UserDto> getUserPublic(@PathVariable Long userId) {
-//        log.info("[INFO] Пришел запрос на получение пользователя по id={} для друзей", userId);
-//        return ResponseEntity.ok().body(userService.getUserById(userId));
-//    }
-
     @GetMapping("/search/by-email")
-    public ResponseEntity<UserDto> getUserByEmail(
+    public ResponseEntity<UserDto> searchUserByEmail(
             @RequestParam String email
     ) {
         log.info("[UserController - INFO] Пришел запрос на поиск пользователя по email: {}", email);
-        return ResponseEntity.ok().body(userService.getUserByEmail(email));
+        return ResponseEntity.ok().body(userService.searchUserByEmail(email));
     }
 
     @GetMapping("/search")
@@ -62,7 +47,7 @@ public class UserController {
         return ResponseEntity.ok().body(userService.searchUsers(currentUserId, filter, page, size));
     }
 
-    @PutMapping("/account/update")
+    @PutMapping("/me")
     public ResponseEntity<UserDto> updateUserAccount(
             @Valid @RequestBody UpdateUserDto updateAccountUser,
             @RequestHeader("X-User-Id") String userId
@@ -72,7 +57,7 @@ public class UserController {
         return ResponseEntity.ok().body(userService.updateUserAccount(currentUserId, updateAccountUser));
     }
 
-    @PutMapping("/account/update/pass")
+    @PutMapping("/me/pass")
     public ResponseEntity<Void> updatePasswordUser(
             @Valid @RequestBody UpdatePasswordUserDto updatePasswordUserDto,
             @RequestHeader("X-User-Id") String userId

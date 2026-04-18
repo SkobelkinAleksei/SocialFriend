@@ -16,7 +16,6 @@ import static java.util.Objects.isNull;
 @Service
 @RequiredArgsConstructor
 public class UserUpdateService {
-    private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
 
