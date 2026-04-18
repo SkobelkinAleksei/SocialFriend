@@ -51,13 +51,15 @@ public class UserController {
 
     @GetMapping("/search")
     public ResponseEntity<List<UserDto>> search(
+            @RequestHeader("X-User-Id") String userId,
             @RequestBody(required = false) UserFilterDto filter,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         log.info("[UserController - INFO] Пришел запрос на поиск пользователей по фильтру: {}, страница: {}, размер: {}",
                 filter, page, size);
-        return ResponseEntity.ok().body(userService.searchUsers(filter, page, size));
+        Long currentUserId = Long.parseLong(userId);
+        return ResponseEntity.ok().body(userService.searchUsers(currentUserId, filter, page, size));
     }
 
     @PutMapping("/account/update")

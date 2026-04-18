@@ -132,13 +132,13 @@ public class UserServiceImpl implements UserService {
 
     @Transactional(readOnly = true)
     @Override
-    public List<UserDto> searchUsers(UserFilterDto filter, int page, int size) {
+    public List<UserDto> searchUsers(Long currentUserId, UserFilterDto filter, int page, int size) {
         log.info("[UserServiceImpl - INFO] Поиск пользователей с фильтром: {}, страница: {}, размер: {}",
                 filter, page, size);
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
 
         Page<UserEntity> users = userRepository.findAll(
-                UserSpecification.filter(filter),
+                UserSpecification.filter(filter, currentUserId),
                 pageable
         );
 

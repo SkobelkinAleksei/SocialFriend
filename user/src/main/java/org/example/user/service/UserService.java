@@ -11,5 +11,5 @@ public interface UserService {
     UserFullDto getMyProfile(Long userId);
     UserDto updateUserAccount(Long userId, UpdateUserDto updateAccountUser);
     void updatePassword(Long userId, UpdatePasswordUserDto updatePasswordUserDto);
-    List<UserDto> searchUsers(UserFilterDto filter, int page, int size);
+    List<UserDto> searchUsers(Long currentUserId, UserFilterDto filter, int page, int size);
 }
