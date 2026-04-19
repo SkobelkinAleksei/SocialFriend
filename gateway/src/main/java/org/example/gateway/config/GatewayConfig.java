@@ -21,6 +21,10 @@ public class GatewayConfig {
                         .path("/api/v1/social/registration/**")
                         .uri("http://localhost:8081"))
 
+                .route("friend", r -> r
+                        .path("/api/v1/social/friends/**")
+                        .uri("http://localhost:8082"))
+
                 .route("security", r -> r
                         .path("/api/v1/social/auth/**")
                         .uri("http://localhost:8888"))

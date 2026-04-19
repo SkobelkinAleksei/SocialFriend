@@ -1,9 +1,11 @@
 rootProject.name = 'SocialFriend'
 
-include 'user'
-include 'security'
-include 'events-kafka'
 include 'gateway'
+include 'security'
+include 'user'
+include 'friend'
 //include 'social-common'
 //include 'auth-service'
 //include 'post-service'
+include 'common'
+

@@ -3,7 +3,9 @@ package org.example.user.service;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.eventskafka.UserRegisteredEvent;
+import com.example.common.kafka.UserEmailUpdatedEvent;
+import com.example.common.kafka.UserPasswordUpdatedEvent;
+import com.example.common.kafka.UserRegisteredEvent;
 import org.example.user.dto.*;
 import org.example.user.entity.UserEntity;
 import org.example.user.mapper.UserMapper;
@@ -38,7 +40,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto signUp(RegistrationUserDto registrationUserDto) {
-        log.info("[INFO] Создание пользователя с email: {} и номером телефона: {}",
+        log.info("[UserServiceImpl - INFO] Создание пользователя с email: {} и номером телефона: {}",
                 registrationUserDto.getEmail(), registrationUserDto.getNumberPhone());
 
         boolean existByEmailOrNumberPhone = userRepository.isExistByEmailOrNumberPhone(
@@ -47,7 +49,7 @@ public class UserServiceImpl implements UserService {
         );
 
         if (existByEmailOrNumberPhone) {
-            log.warn("[INFO] Попытка создания пользователя с уже существующими email или телефоном: email={}, phone={}",
+            log.warn("[UserServiceImpl - INFO] Попытка создания пользователя с уже существующими email или телефоном: email={}, phone={}",
                     registrationUserDto.getEmail(), registrationUserDto.getNumberPhone());
 
             throw new IllegalArgumentException("Email или телефон уже используются!");
@@ -55,7 +57,6 @@ public class UserServiceImpl implements UserService {
 
         UserEntity userEntity = userMapper.toEntity(registrationUserDto);
         userEntity.setPassword(passwordEncoder.encode(registrationUserDto.getPassword()));
-        userEntity.setTimeStamp(LocalDateTime.now());
 
         UserEntity saved = userRepository.save(userEntity);
         UserDto userDto = userMapper.toDto(saved);
@@ -69,26 +70,14 @@ public class UserServiceImpl implements UserService {
         // Отправляем в Kafka
         kafkaTemplate.send("user-registered", event);
 
-        log.info("[INFO] Пользователь успешно создан и событие отправлено в Kafka с id: {}", userDto.getUserId());
+        log.info("[UserServiceImpl - INFO] Пользователь успешно создан и событие отправлено в Kafka с id: {}", userDto.getUserId());
         return userDto;
     }
 
     @Transactional(readOnly = true)
     @Override
-    public UserDto getUserById(Long userId) {
-        log.info("[INFO] Получение пользователя по id: {}", userId);
-        UserEntity userEntity = userLookupService.getById(userId);
-
-        UserDto userDto = userMapper.toDto(userEntity);
-        log.info("[INFO] Пользователь: {} успешно получен", userDto);
-
-        return userDto;
-    }
-
-    @Transactional(readOnly = true)
-    @Override
-    public UserDto getUserByEmail(String email) {
-        log.info("[INFO] Поиск пользователя по email: {}", email);
+    public UserDto searchUserByEmail(String email) {
+        log.info("[UserServiceImpl - INFO] Поиск пользователя по email: {}", email);
         return userMapper.toDto(
                 userRepository.findByEmailIgnoreCase(email)
                         .orElseThrow(() -> {
@@ -100,50 +89,61 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     @Override
     public UserFullDto getMyProfile(Long userId) {
-        log.info("[INFO] Получение профиля для пользователя с id: {}", userId);
+        log.info("[UserServiceImpl - INFO] Получение профиля для пользователя с id: {}", userId);
         UserEntity userEntity = userLookupService.getById(userId);
 
         UserFullDto userFullDto = userMapper.toFullDto(userEntity);
-        log.info("[INFO] Профиль пользователя: {} успешно получен", userFullDto);
+        log.info("[UserServiceImpl - INFO] Профиль пользователя: {} успешно получен", userFullDto);
 
         return userFullDto;
     }
 
     @Override
     public UserDto updateUserAccount(Long userId, UpdateUserDto updateAccountUser) {
-        log.info("[INFO] Обновление аккаунта пользователя с id: {}", userId);
+        log.info("[UserServiceImpl - INFO] Обновление аккаунта пользователя с id: {}", userId);
         UserEntity userEntity = userLookupService.getById(userId);
 
+        boolean emailChanged =  updateAccountUser.getEmail() != null
+                && !userEntity.getEmail().equals(updateAccountUser.getEmail());
+
         UserDto userDto = userUpdateService.updateAccount(userEntity, updateAccountUser);
-        log.info("[INFO] Аккаунт пользователя: {} успешно обновлён", userDto);
+        log.info("[UserServiceImpl - INFO] Аккаунт пользователя: {} успешно обновлён", userDto);
+
+        if (emailChanged) {
+            log.info("[UserServiceImpl - INFO] Почта изменена. Отправка события в Kafka для userId: {}", userId);
+            kafkaTemplate.send("user-email-updated", new UserEmailUpdatedEvent(userId, userEntity.getEmail()));
+        }
 
         return userDto;
     }
 
     @Override
     public void updatePassword(Long userId, UpdatePasswordUserDto updatePasswordUserDto) {
-        log.info("[INFO] Обновление пароля пользователя с id: {}", userId);
+        log.info("[UserServiceImpl - INFO] Обновление пароля пользователя с id: {}", userId);
         UserEntity userEntity = userLookupService.getById(userId);
 
         userUpdateService.updatePassword(userEntity, updatePasswordUserDto);
-        log.info("[INFO] Пароль пользователя с id: {} успешно обновлён", userId);
+        log.info("[UserServiceImpl - INFO] Пароль пользователя с id: {} успешно обновлён", userId);
         userRepository.save(userEntity);
+
+        kafkaTemplate.send("user-password-updated", new UserPasswordUpdatedEvent(userId, userEntity.getPassword()));
+        log.info("[UserServiceImpl - INFO] Отправка события о смене пароля в Kafka для userId: {}", userId);
     }
 
     @Transactional(readOnly = true)
     @Override
-    public List<UserDto> searchUsers(UserFilterDto filter, int page, int size) {
-        log.info("[INFO] Поиск пользователей с фильтром: {}, страница: {}, размер: {}",
+    public List<UserDto> searchUsers(Long currentUserId, UserFilterDto filter, int page, int size) {
+        log.info("[UserServiceImpl - INFO] Поиск пользователей с фильтром: {}, страница: {}, размер: {}",
                 filter, page, size);
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
 
         Page<UserEntity> users = userRepository.findAll(
-                UserSpecification.filter(filter),
+                UserSpecification.filter(filter, currentUserId),
                 pageable
         );
 
         List<UserDto> dtoList = users.map(userMapper::toDto).toList();
-        log.info("[INFO] Поиск пользователей завершён. Найдено записей: {}", dtoList.size());
+        log.info("[UserServiceImpl - INFO] Поиск пользователей завершён. Найдено записей: {}", dtoList.size());
 
         return dtoList;
     }
