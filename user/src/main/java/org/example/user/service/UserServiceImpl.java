@@ -74,18 +74,6 @@ public class UserServiceImpl implements UserService {
         return userDto;
     }
 
-//    @Transactional(readOnly = true)
-//    @Override
-//    public UserDto getUserById(Long userId) {
-//        log.info("[INFO] Получение пользователя по id: {}", userId);
-//        UserEntity userEntity = userLookupService.getById(userId);
-//
-//        UserDto userDto = userMapper.toDto(userEntity);
-//        log.info("[INFO] Пользователь: {} успешно получен", userDto);
-//
-//        return userDto;
-//    }
-
     @Transactional(readOnly = true)
     @Override
     public UserDto searchUserByEmail(String email) {
