@@ -11,10 +11,14 @@ import java.util.List;
 
 public class UserSpecification {
 
-    public static Specification<UserEntity> filter(UserFilterDto userFilterDto) {
+    public static Specification<UserEntity> filter(UserFilterDto userFilterDto, Long currentUserId) {
         return (root, query, cb) -> {
 
             List<Predicate> predicates = new ArrayList<>();
+
+            if (currentUserId != null) {
+                predicates.add(cb.notEqual(root.get("id"), currentUserId));
+            }
 
             if (userFilterDto.getFirstName() != null && !userFilterDto.getFirstName().trim().isEmpty()) {
                 predicates.add(cb.like(cb.lower(root.get("firstName")),
