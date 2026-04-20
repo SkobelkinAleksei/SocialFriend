@@ -1,5 +1,6 @@
 package org.example.comment.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.comment.dto.CommentDto;
 import org.example.comment.dto.NewCommentDto;
@@ -19,7 +20,7 @@ public class PublicCommentController {
     public ResponseEntity<Void> createComment(
             @RequestHeader("X-User-Id") String userId,
             @PathVariable(name = "postId") Long postId,
-            @RequestBody NewCommentDto newCommentDto
+            @Valid @RequestBody NewCommentDto newCommentDto
     ) {
         Long currentUserId = Long.parseLong(userId);
         commentService.createComment(currentUserId, postId, newCommentDto);

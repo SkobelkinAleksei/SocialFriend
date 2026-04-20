@@ -1,6 +1,7 @@
 package org.example.post.controller;
 
 import com.example.common.dto.PostDto;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.post.dto.NewPostDto;
@@ -30,7 +31,7 @@ public class PostController {
     @PostMapping
     public ResponseEntity<Long> createPost(
             @RequestHeader("X-User-Id") String userId,
-            @RequestBody NewPostDto newPostDto
+            @Valid @RequestBody NewPostDto newPostDto
     ) {
         Long currentUserId = Long.parseLong(userId);
         log.info("[PostController - INFO] Пришел запрос на создание нового поста от автора с id: {}", currentUserId);
@@ -43,7 +44,7 @@ public class PostController {
     public ResponseEntity<Void> updatePost(
             @RequestHeader("X-User-Id") String userId,
             @PathVariable Long postId,
-            @RequestBody UpdatePostDto updatePostDto
+            @Valid @RequestBody UpdatePostDto updatePostDto
     ) {
         Long currentUserId = Long.parseLong(userId);
         log.info("[PostController - INFO] Пришел запрос на обновление поста с id: {} пользователем с id: {}", postId, currentUserId);

@@ -1,5 +1,6 @@
 package org.example.comment.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.comment.dto.NewCommentDto;
 import org.example.comment.service.PrivateCommentService;
@@ -18,7 +19,7 @@ public class PrivateCommentController {
     public ResponseEntity<Void> updateCommentById(
             @RequestHeader("X-User-Id") String userId,
             @PathVariable(name = "commentId") Long commentId,
-            @RequestBody NewCommentDto newCommentDto
+            @Valid @RequestBody NewCommentDto newCommentDto
     ) {
         Long currentUserId = Long.parseLong(userId);
         commentService.updateCommentById(commentId, currentUserId, newCommentDto);
