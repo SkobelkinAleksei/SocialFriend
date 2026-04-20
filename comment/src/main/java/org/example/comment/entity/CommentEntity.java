@@ -1,29 +1,34 @@
-package org.example.post.entity;
+package org.example.comment.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
-@Builder
 @Getter
 @Setter
+@Builder
 @AllArgsConstructor
-@NoArgsConstructor
+@RequiredArgsConstructor
 @Entity
-@Table(name = "posts")
-public class PostEntity {
+@Table(name = "comments")
+public class CommentEntity implements Serializable {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(nullable = false)
     private Long id;
 
-    @Column(name = "author_id", nullable = false)
+    @Column(name = "post_id")
+    private Long postId;
+
+    @Column(name = "author_id")
     private Long authorId;
 
-    @Column(nullable = false)
+    @Column(name = "content", nullable = false)
     private String content;
 
     @CreationTimestamp
@@ -34,10 +39,7 @@ public class PostEntity {
     @Column(name = "updated_at", columnDefinition = "TIMESTAMP(0)")
     private LocalDateTime updatedAt;
 
-    @Column(name = "status_post", nullable = false)
     @Enumerated(EnumType.STRING)
-    private StatusPost statusPost;
-
-    @Column(name = "comments_allowed", nullable = false)
-    private boolean commentsAllowed;
+    @Column(name = "comment_status")
+    private CommentStatus commentStatus;
 }

@@ -1,9 +1,9 @@
 package org.example.post.controller;
 
+import com.example.common.dto.PostDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.post.dto.NewPostDto;
-import org.example.post.dto.PostDto;
 import org.example.post.dto.UpdatePostDto;
 import org.example.post.entity.StatusPost;
 import org.example.post.service.PostService;
