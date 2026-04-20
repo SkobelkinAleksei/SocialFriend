@@ -37,6 +37,8 @@ public class FriendRequestServiceImpl implements FriendRequestService {
     private final FriendRequestMapper friendRequestMapper;
     private final UserReferenceRepository userReferenceRepository;
 
+    //TODO НУЖНО СДЕЛАТЬ FACADE
+
     @Transactional
     public void addFriendRequest(Long requesterId, Long addresseeId) {
 

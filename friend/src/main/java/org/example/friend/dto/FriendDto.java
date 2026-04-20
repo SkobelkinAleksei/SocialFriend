@@ -10,7 +10,6 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 public class FriendDto implements Serializable {
-    Long id;
     Long userId1;
     Long userId2;
 }

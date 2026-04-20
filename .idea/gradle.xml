@@ -11,6 +11,7 @@
             <option value="$PROJECT_DIR$/common" />
             <option value="$PROJECT_DIR$/friend" />
             <option value="$PROJECT_DIR$/gateway" />
+            <option value="$PROJECT_DIR$/post" />
             <option value="$PROJECT_DIR$/security" />
             <option value="$PROJECT_DIR$/user" />
           </set>
