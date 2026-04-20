@@ -1,6 +1,8 @@
 package org.example.comment.service.impl;
 
 import com.example.common.dto.PostDto;
+import com.example.common.kafka.NotificationKafkaProducer;
+import com.example.common.kafka.NotificationType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.comment.dto.CommentDto;
@@ -25,6 +27,8 @@ public class PublicCommentServiceImpl implements PublicCommentService {
     private final CommentRepository commentRepository;
     private final CommentMapper commentMapper;
     private final CommentLookupService commentLookupService;
+    private final NotificationKafkaProducer notificationProducer;
+
 
     @Override
     @Transactional
@@ -44,6 +48,14 @@ public class PublicCommentServiceImpl implements PublicCommentService {
 
         commentRepository.save(commentEntity);
         log.info("[PublicCommentServiceImpl - INFO] Комментарий был успешно создан пользователем {}", authorId);
+
+        notificationProducer.sendEvent(
+                postDto.getAuthorId(),
+                authorId,
+                NotificationType.NEW_COMMENT,
+                postId,
+                "Оставил комментарий к вашему посту"
+        );
     }
 
     @Override
