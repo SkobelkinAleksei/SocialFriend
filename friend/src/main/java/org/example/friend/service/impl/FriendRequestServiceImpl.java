@@ -1,5 +1,7 @@
 package org.example.friend.service.impl;
 
+import com.example.common.kafka.NotificationKafkaProducer;
+import com.example.common.kafka.NotificationType;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +38,7 @@ public class FriendRequestServiceImpl implements FriendRequestService {
     private final PrivateFriendService privateFriendService;
     private final FriendRequestMapper friendRequestMapper;
     private final UserReferenceRepository userReferenceRepository;
+    private final NotificationKafkaProducer notificationProducer;
 
     //TODO НУЖНО СДЕЛАТЬ FACADE
 
@@ -66,6 +69,14 @@ public class FriendRequestServiceImpl implements FriendRequestService {
 
         friendRequestRepository.save(friendRequestEntity);
         log.info("[FriendRequestService - INFO] Заявка в друзья успешно создана");
+
+        notificationProducer.sendEvent(
+                addresseeId,
+                requesterId,
+                NotificationType.FRIEND_REQUEST_SENT,
+                null,
+                "прислал вам запрос в друзья"
+        );
     }
 
     @Transactional
@@ -147,6 +158,14 @@ public class FriendRequestServiceImpl implements FriendRequestService {
             privateFriendService.createFriendship(friendEntity);
 
             log.info("[FriendRequestService - INFO] Заявка в друзья успешно принята");
+
+            notificationProducer.sendEvent(
+                    requestEntity.getRequesterId(), // тот, кто кидал заявку
+                    currentUserId,
+                    NotificationType.FRIEND_REQUEST_ACCEPTED,
+                    null,
+                    "принял ваш запрос в друзья"
+            );
 
         } else if (status.equals(ResponseFriendRequest.REJECTED)) {
             requestEntity.setStatus(FriendRequestStatus.REJECTED);
