@@ -1,9 +1,9 @@
 package org.example.post.service;
 
+import com.example.common.dto.PostDto;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.post.dto.NewPostDto;
-import org.example.post.dto.PostDto;
 import org.example.post.dto.UpdatePostDto;
 import org.example.post.entity.StatusPost;
 import org.example.post.entity.PostEntity;
@@ -51,6 +51,7 @@ public class PostServiceImpl implements PostService{
         PostEntity postEntity = postMapper.toEntity(newPostDto);
         postEntity.setAuthorId(authorId);
         postEntity.setStatusPost(StatusPost.PUBLISHED);
+        postEntity.setCommentsAllowed(newPostDto.isCommentsAllowed());
         postRepository.save(postEntity);
 
         log.info("[PostServiceImpl - INFO] Пост успешно создан, id: {}, автор id: {}", postEntity.getId(), authorId);

@@ -1,7 +1,7 @@
 package org.example.post.service;
 
+import com.example.common.dto.PostDto;
 import org.example.post.dto.NewPostDto;
-import org.example.post.dto.PostDto;
 import org.example.post.dto.UpdatePostDto;
 import org.example.post.entity.StatusPost;
 

@@ -1,7 +1,7 @@
 package org.example.post.mapper;
 
+import com.example.common.dto.PostDto;
 import org.example.post.dto.NewPostDto;
-import org.example.post.dto.PostDto;
 import org.example.post.dto.PostFullDto;
 import org.example.post.entity.PostEntity;
 import org.mapstruct.Mapper;

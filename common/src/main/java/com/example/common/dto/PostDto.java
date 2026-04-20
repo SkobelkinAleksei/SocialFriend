@@ -1,4 +1,4 @@
-package org.example.post.dto;
+package com.example.common.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
@@ -28,4 +28,6 @@ public class PostDto implements Serializable {
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     LocalDateTime updatedAt;
+
+    boolean commentsAllowed;
 }
