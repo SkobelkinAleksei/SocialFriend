@@ -33,6 +33,10 @@ public class GatewayConfig {
                         .path("/api/v1/social/comments/**")
                         .uri("http://localhost:8084"))
 
+                .route("like", r -> r
+                        .path("/api/v1/social/likes/**")
+                        .uri("http://localhost:8085"))
+
                 .route("security", r -> r
                         .path("/api/v1/social/auth/**")
                         .uri("http://localhost:8888"))
