@@ -13,6 +13,7 @@
             <option value="$PROJECT_DIR$/friend" />
             <option value="$PROJECT_DIR$/gateway" />
             <option value="$PROJECT_DIR$/like" />
+            <option value="$PROJECT_DIR$/notification" />
             <option value="$PROJECT_DIR$/post" />
             <option value="$PROJECT_DIR$/rest-client" />
             <option value="$PROJECT_DIR$/security" />

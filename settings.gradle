@@ -7,6 +7,7 @@ include 'friend'
 include 'post'
 include 'comment'
 include 'like'
+include 'notification'
 include 'rest-client'
 include 'common'
 

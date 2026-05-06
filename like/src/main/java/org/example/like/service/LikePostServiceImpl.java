@@ -1,5 +1,8 @@
 package org.example.like.service;
 
+import com.example.common.dto.PostDto;
+import com.example.common.kafka.NotificationKafkaProducer;
+import com.example.common.kafka.NotificationType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.like.dto.LikePostDto;
@@ -21,6 +24,7 @@ public class LikePostServiceImpl implements LikePostService {
     private final LikePostRepository likeRepository;
     private final LikePostMapper likeMapper;
     private final LikePostLookupService likePostLookupService;
+    private final NotificationKafkaProducer notificationProducer;
 
     @Transactional(readOnly = true)
     public List<LikePostDto> getLikesByPostId(Long postId) {
@@ -36,7 +40,7 @@ public class LikePostServiceImpl implements LikePostService {
 
     @Transactional
     public void toggleLike(Long postId, Long userId) {
-        likePostLookupService.getPostDtoFromApi(postId);
+        PostDto postDto = likePostLookupService.getPostDtoFromApi(postId);
         log.info("[INFO] Лайк-дизлайк для поста id: {} пользователем id: {}", postId, userId);
 
         Optional<LikePostEntity> optionalLike = likeRepository.findByPostIdAndUserId(postId, userId);
@@ -66,6 +70,14 @@ public class LikePostServiceImpl implements LikePostService {
 
             LikePostEntity saved = likeRepository.save(likePostEntity);
             log.info("[LikePostServiceImpl - INFO] СОХРАНЁН НОВЫЙ like id: {}", saved.getId());
+
+            notificationProducer.sendEvent(
+                    postDto.getAuthorId(),
+                    userId,
+                    NotificationType.POST_LIKE,
+                    postId,
+                    "Пользователь оценил ваш пост"
+            );
         }
     }
 
