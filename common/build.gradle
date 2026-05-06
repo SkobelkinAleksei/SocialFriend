@@ -2,11 +2,11 @@ plugins {
     id 'java-library'
 }
 
-description = 'events-kafka'
+group = 'org.example'
 
 dependencies {
     // для сериализации событий в JSON (Kafka + Jackson)
+    implementation 'org.springframework.kafka:spring-kafka:3.3.9'
     api 'com.fasterxml.jackson.core:jackson-databind:2.17.2'
     api 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.2'
-
 }
