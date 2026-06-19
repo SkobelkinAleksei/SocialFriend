@@ -16,9 +16,12 @@ public class NotificationKafkaListener {
 
     @KafkaListener(topics = "notifications", groupId = "notification-group")
     public void listen(NotificationEvent event) {
-        log.info("[KAFKA] Получено уведомление для пользователя {}: {}",
+        log.info("[NotificationKafkaListener - INFO] Получено уведомление для пользователя {}: {}",
                 event.getReceiverId(), event.getMessage());
-
-        notificationService.processNotification(event);
+        try {
+            notificationService.processNotification(event);
+        } catch (Exception e) {
+            log.error("[NotificationKafkaListener - ERROR] Ошибка обработки уведомления из Kafka: ", e);
+        }
     }
 }
