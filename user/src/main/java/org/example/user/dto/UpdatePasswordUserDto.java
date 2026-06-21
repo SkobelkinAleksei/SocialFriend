@@ -17,7 +17,7 @@ public class UpdatePasswordUserDto implements Serializable {
     String oldPassword;
 
     @Pattern(
-            regexp = "^(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d]{8,20}$",
+            regexp = "^(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d!]{8,20}$",
             message = "Пароль должен содержать хотя бы одну заглавную букву," +
                     " хотя бы одну цифру, только английские символы и иметь длину от 8 до 20 символов."
     )

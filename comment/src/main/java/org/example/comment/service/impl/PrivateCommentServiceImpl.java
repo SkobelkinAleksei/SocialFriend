@@ -51,7 +51,7 @@ public class PrivateCommentServiceImpl implements PrivateCommentService {
         boolean isPostAuthor = postDto.getAuthorId().equals(currentUserId);
 
         if (!isCommentAuthor && !isPostAuthor) {
-            log.warn("[PublicCommentServiceImpl - INFO] Попытка удаления. User: {}, Comment: {}", currentUserId, commentId);
+            log.warn("[PublicCommentServiceImpl - INFO] Попытка незаконного удаления. User: {}, Comment: {}", currentUserId, commentId);
             throw new AccessException("У вас нет прав на удаление этого комментария!");
         }
 

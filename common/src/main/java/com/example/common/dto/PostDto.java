@@ -16,6 +16,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class PostDto implements Serializable {
 
+    Long id;
+
     @NotNull(message = "Пользователь должен быть указан.")
     Long authorId;
 

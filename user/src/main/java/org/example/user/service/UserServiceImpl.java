@@ -76,6 +76,15 @@ public class UserServiceImpl implements UserService {
 
     @Transactional(readOnly = true)
     @Override
+    public UserDto getUserById(Long userId) {
+        log.info("[UserServiceImpl - INFO] Поиск пользователя по userId: {}", userId);
+        return userMapper.toDto(userRepository
+                .findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не был найден")));
+    }
+
+    @Transactional(readOnly = true)
+    @Override
     public UserDto searchUserByEmail(String email) {
         log.info("[UserServiceImpl - INFO] Поиск пользователя по email: {}", email);
         return userMapper.toDto(
@@ -99,6 +108,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public UserDto updateUserAccount(Long userId, UpdateUserDto updateAccountUser) {
         log.info("[UserServiceImpl - INFO] Обновление аккаунта пользователя с id: {}", userId);
         UserEntity userEntity = userLookupService.getById(userId);
@@ -118,6 +128,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public void updatePassword(Long userId, UpdatePasswordUserDto updatePasswordUserDto) {
         log.info("[UserServiceImpl - INFO] Обновление пароля пользователя с id: {}", userId);
         UserEntity userEntity = userLookupService.getById(userId);

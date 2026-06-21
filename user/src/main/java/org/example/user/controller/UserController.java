@@ -17,6 +17,15 @@ import java.util.List;
 public class UserController {
     private final UserService userService;
 
+    @GetMapping("/{id}")
+    public ResponseEntity<UserDto> getUserById(
+            @PathVariable Long id,
+            @RequestHeader("X-User-Id") String currentUserId
+    ) {
+        log.info("[UserController - INFO] Пришел запрос на получение профиля пользователя по id: {} от пользователя: {}", id, currentUserId);
+        return ResponseEntity.ok().body(userService.getUserById(id));
+    }
+
     @GetMapping("/me")
     public ResponseEntity<UserFullDto> getMyProfile(
             @RequestHeader("X-User-Id") String userId
@@ -58,7 +67,7 @@ public class UserController {
     @GetMapping("/search")
     public ResponseEntity<List<UserDto>> search(
             @RequestHeader("X-User-Id") String userId,
-            @RequestBody(required = false) UserFilterDto filter,
+            UserFilterDto filter,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
