@@ -37,18 +37,26 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
             return chain.filter(exchange);
         }
 
-        String authHeader = exchange
-                .getRequest()
-                .getHeaders()
-                .getFirst(HttpHeaders.AUTHORIZATION);
+        // Инициализируем переменную для токена
+        String jwt = null;
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-            return exchange.getResponse().setComplete();
+        // ПРОВЕРКА ДЛЯ ВЕБСОКЕТА: если в пути есть /ws, ищем токен в Query-параметрах URL
+        if (path.contains("/ws")) {
+            jwt = exchange.getRequest().getQueryParams().getFirst("token");
+        } else {
+            // ДЛЯ ОБЫЧНЫХ REST ЗАПРОСОВ: ищем в стандартном заголовке Authorization
+            String authHeader = exchange
+                    .getRequest()
+                    .getHeaders()
+                    .getFirst(HttpHeaders.AUTHORIZATION);
+
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                jwt = authHeader.substring(7);
+            }
         }
 
-        String jwt = authHeader.substring(7);
-        if (!jwtUtils.isTokenValid(jwt)) {
+        // Если токен не был найден ни в заголовках, ни в параметрах WebSocket, или он невалиден
+        if (jwt == null || !jwtUtils.isTokenValid(jwt)) {
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
         }
@@ -70,6 +78,7 @@ public class JwtGlobalFilter implements GlobalFilter, Ordered {
         // 3. Передаём модифицированный exchange дальше
         return chain.filter(modifiedExchange);
     }
+
 
 
     @Override

@@ -11,5 +11,5 @@ import java.util.List;
 @Repository
 public interface NotificationRepository extends JpaRepository<NotificationEntity, Long> {
     Page<NotificationEntity> findAllByReceiverId(Long receiverId, Pageable pageable);
-    List<NotificationEntity> findAllByReceiverIdAndIsReadFalse(Long receiverId);
+    List<NotificationEntity> findAllByReceiverIdAndReadFalse(Long receiverId);
 }

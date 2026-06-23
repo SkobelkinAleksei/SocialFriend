@@ -1,104 +1,172 @@
 <template>
   <div style="background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(164,176,190,0.08); border: 1px solid #edf2f7; max-width: 760px; width: 100%; box-sizing: border-box;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #f8f9fa; padding-bottom: 15px;">
-      <h2 style="margin: 0; color: #2c3e50; font-size: 20px;">Управление связями 👥</h2>
-      <button @click="refreshAll" style="background: none; border: none; color: #54a0ff; font-weight: 600; cursor: pointer; font-size: 14px;">Обновить все</button>
-    </div>
-
     <!-- ТРИ ПАСТЕЛЬНЫЕ ВКЛАДКИ С ФИКСИРОВАННЫМ ВЫРАВНИВАНИЕМ -->
-    <div style="display: flex; gap: 8px; margin-bottom: 30px; background: #f8f9fa; padding: 6px; border-radius: 10px; width: 100%; box-sizing: border-box; justify-content: space-between; align-items: center; flex-direction: row;">
-      <button @click="activeTab = 'list'" :style="subTabStyle(activeTab === 'list')">
-        <span>Мои друзья ({{ friends.length }})</span>
-      </button>
+    <div style="display: flex; gap: 8px; margin-bottom: 30px; width: 100%; box-sizing: border-box; align-items: center; flex-direction: row;">
 
-      <!-- ИСПРАВЛЕНО: Текст и кружок выровнены в одну строчку через flex/center -->
-      <button @click="activeTab = 'incoming'" :style="subTabStyle(activeTab === 'incoming')">
-        <span style="display: inline-flex; align-items: center; gap: 6px; justify-content: center; width: 100%;">
-          Входящие заявки
-          <span v-if="incomingRequests.length > 0" style="background: #ff7675; color: white; min-width: 18px; height: 18px; padding: 0 6px; border-radius: 10px; font-size: 11px; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; line-height: 1; flex-shrink: 0;">
-            {{ incomingRequests.length }}
-          </span>
-        </span>
-      </button>
+      <!-- Если смотрим чужого пользователя, выводим как красивый заголовок, если себя — оставляем кнопкой -->
+      <div v-if="targetUserId" style="font-size: 18px; font-weight: 700; color: #54a0ff; padding: 6px 0;">
+        Друзья {{ targetUserName }} <span style="color: #a4b0be; font-weight: 500; font-size: 16px; margin-left: 4px;">({{ friends.length }})</span>
+      </div>
 
-      <button @click="activeTab = 'outgoing'" :style="subTabStyle(activeTab === 'outgoing')">
-        <span>Отправленные заявки ({{ outgoingRequests.length }})</span>
-      </button>
+      <!-- Если это наш личный кабинет, сохраняем три вкладки, но убираем серую подложку -->
+      <template v-else>
+        <button @click="activeTab = 'list'" :style="subTabStyle(activeTab === 'list')">
+          <span>Мои друзья ({{ friends.length }})</span>
+        </button>
+        <button @click="activeTab = 'incoming'" :style="subTabStyle(activeTab === 'incoming')">
+          <span>Входящие заявки ({{ incomingRequests.length }})</span>
+        </button>
+        <button @click="activeTab = 'outgoing'" :style="subTabStyle(activeTab === 'outgoing')">
+          <span>Отправленные заявки ({{ outgoingRequests.length }})</span>
+        </button>
+      </template>
+
     </div>
 
-    <!-- ВКЛАДКА 1: СПИСОК ДРУЗЕЙ -->
-    <div v-if="activeTab === 'list'">
-      <div v-if="friends.length > 0" style="display: flex; flex-direction: column; gap: 14px;">
-        <div v-for="friend in friends" :key="friend.id" style="display: flex; align-items: center; justify-content: space-between; padding: 16px; background: #f8f9fa; border-radius: 12px; border: 1px solid #edf2f7;">
-          <div @click="emit('open-user-profile', friend.id)" style="display: flex; align-items: center; gap: 12px; cursor: pointer;" title="Открыть профиль">
-            <div style="width: 40px; height: 40px; background: #edf5ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #54a0ff; transition: 0.2s;" onmouseover="this.style.backgroundColor='#d0e4ff'" onmouseout="this.style.backgroundColor='#edf5ff'">👤</div>
-            <span style="font-size: 15px; font-weight: 600; color: #2c3e50; transition: 0.2s;" onmouseover="this.style.color='#54a0ff'" onmouseout="this.style.color='#2c3e50'">
-              {{ friend.name || ('Пользователь ID: ' + friend.id) }}
-            </span>
-          </div>
-          <button @click="handleRemoveFriend(friend.id)" style="padding: 8px 16px; background: none; border: 1px solid #ff7675; color: #ff7675; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#ff7675'; this.style.color='white'" onmouseout="this.style.background='none'; this.style.color='#ff7675'">
-            Удалить из друзей
-          </button>
+  <!-- ВКЛАДКА 1: СПИСОК ДРУЗЕЙ -->
+  <div v-if="activeTab === 'list'">
+    <div v-if="friends.length > 0" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; box-sizing: border-box;">
+
+      <div
+          v-for="friend in friends"
+          :key="friend.id"
+          @click="emit('open-user-profile', friend.id)"
+          style="display: flex; flex-direction: column; align-items: center; padding: 24px 16px; background: #f8f9fa; border-radius: 16px; border: 1px solid #edf2f7; cursor: pointer; transition: all 0.2s ease; box-sizing: border-box; text-align: center;"
+          onmouseover="this.style.transform='translateY(-4px)'; this.style.borderColor='#54a0ff'; this.style.boxShadow='0 8px 24px rgba(84,160,255,0.12)'; this.style.background='white';"
+          onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='#edf2f7'; this.style.boxShadow='none'; this.style.background='#f8f9fa';"
+          title="Открыть профиль"
+      >
+        <!-- Аватарка по центру кубика -->
+        <div style="width: 50px; height: 50px; background: #edf5ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #54a0ff; margin-bottom: 12px; transition: 0.2s;">
+          👤
         </div>
+
+        <!-- Имя и фамилия -->
+        <span style="font-size: 15px; font-weight: 600; color: #2c3e50; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; display: block; margin-bottom: 16px;">
+       {{ friend.name || ('Пользователь ID: ' + friend.id) }}
+     </span>
+        <!-- НОВАЯ КНОПКА: НАПИСАТЬ СООБЩЕНИЕ -->
+        <button
+            @click.stop="emit('open-chat', friend.id)"
+            title="Открыть диалог и написать сообщение"
+            style="width: 100%; padding: 6px 0; background: #edf5ff; border: 1px solid #d0e6ff; color: #54a0ff; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s;"
+            onmouseover="this.style.background='#d0e6ff'"
+            onmouseout="this.style.background='#edf5ff'"
+        >
+          💬 Написать сообщение
+        </button>
+        <!-- Кнопка удаления (показывается только в своем профиле) -->
+        <button
+            v-if="!targetUserId"
+            @click.stop="handleRemoveFriend(friend.id)"
+            title="Прекратить дружбу с этим пользователем"
+            style="padding: 6px 14px; background: none; border: 1px solid #ff7675; color: #ff7675; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; width: 100%; margin-top: auto;"
+            onmouseover="this.style.background='#ff7675'; this.style.color='white'"
+            onmouseout="this.style.background='none'; this.style.color='#ff7675'"
+        >
+          Удалить из друзей
+        </button>
       </div>
-      <div v-else style="color: #a4b0be; text-align: center; padding: 40px 0; font-size: 14px;">
-        Список друзей пока пуст. Самое время кого-нибудь найти!
-      </div>
+
     </div>
+    <div v-else style="color: #a4b0be; text-align: center; padding: 40px 0; font-size: 14px;">
+      Список друзей пока пуст. Самое время кого-нибудь найти!
+    </div>
+  </div>
+
 
     <!-- ВКЛАДКА 2: ВХОДЯЩИЕ ЗАЯВКИ -->
     <div v-if="activeTab === 'incoming'">
-      <div v-if="incomingRequests.length > 0" style="display: flex; flex-direction: column; gap: 14px;">
-        <div v-for="req in incomingRequests" :key="req.id" style="padding: 16px; background: #f4fbf7; border-radius: 12px; border: 1px solid #bbf7d0; display: flex; justify-content: space-between; align-items: center;">
-          <div @click="emit('open-user-profile', req.requesterId)" style="font-size: 15px; color: #2c3e50; cursor: pointer;" title="Открыть профиль">
-            Пользователь <strong style="color: #2ecc71; transition: 0.2s;" onmouseover="this.style.color='#54a0ff'" onmouseout="this.style.color='#2ecc71'">{{ req.requesterName || ('ID: ' + req.requesterId) }}</strong> хочет добавить вас в друзья
-          </div>
-          <!-- БЛОК ДЕЙСТВИЙ (ИСПРАВЛЕНО: ГАЛОЧКА И КРЕСТИК) -->
-          <div style="display: flex; gap: 10px; align-items: center; flex-shrink: 0;">
-            <!-- Зеленая круглая кнопка-галочка вместо слова "Принять" -->
-            <button
-                @click="handleProcessRequest(req.id, 'ACCEPTED')"
-                style="width: 32px; height: 32px; background: #2ecc71; color: white; border: none; border-radius: 50%; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; box-shadow: 0 4px 10px rgba(46,204,113,0.15); line-height: 1; outline: none;"
-                title="Принять заявку"
-            >
-              ✓
-            </button>
+      <div v-if="incomingRequests.length > 0" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; box-sizing: border-box;">
 
-            <!-- Красная круглая кнопка-крестик -->
+        <div
+            v-for="req in incomingRequests"
+            :key="req.id"
+            @click="emit('open-user-profile', req.requesterId)"
+            style="display: flex; flex-direction: column; align-items: center; padding: 24px 16px; background: #f8f9fa; border-radius: 16px; border: 1px solid #edf2f7; cursor: pointer; transition: all 0.2s ease; box-sizing: border-box; text-align: center;"
+            onmouseover="this.style.transform='translateY(-4px)'; this.style.borderColor='#54a0ff'; this.style.boxShadow='0 8px 24px rgba(84,160,255,0.12)'; this.style.background='white';"
+            onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='#edf2f7'; this.style.boxShadow='none'; this.style.background='#f8f9fa';"
+            title="Открыть профиль"
+        >
+          <!-- Аватарка по центру -->
+          <div style="width: 50px; height: 50px; background: #edf5ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #54a0ff; margin-bottom: 12px;">
+            👤
+          </div>
+
+          <!-- Имя и фамилия -->
+          <span style="font-size: 15px; font-weight: 600; color: #2c3e50; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; display: block; margin-bottom: 4px;">
+       {{ req.name || 'Новый пользователь' }}
+     </span>
+          <span style="font-size: 12px; color: #a4b0be; margin-bottom: 16px; display: block;">хочет в друзья</span>
+
+          <!-- Кнопки действий (в один ряд внизу кубика) -->
+          <div style="display: flex; gap: 8px; width: 100%; margin-top: auto;">
             <button
-                @click="handleProcessRequest(req.id, 'REJECTED')"
-                style="width: 32px; height: 32px; background: #ff7675; color: white; border: none; border-radius: 50%; font-size: 18px; font-weight: 400; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; box-shadow: 0 4px 10px rgba(255, 118, 117, 0.15); line-height: 1; outline: none;"
-                title="Отклонить заявку"
+                @click.stop="handleProcessRequest(req.id, 'ACCEPTED')"
+                title="Принять заявку и добавить пользователя в друзья"
+                style="flex: 1; padding: 6px 0; background: #e3fafc; color: #0c8599; border: 1px solid #c5f6fa; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s;"
+                onmouseover="this.style.background='#c5f6fa'"
+                onmouseout="this.style.background='#e3fafc'"
             >
-              ×
+              Принять
+            </button>
+            <button
+                @click.stop="handleProcessRequest(req.id, 'REJECTED')"
+                title="Отклонить заявку в друзья"
+                style="flex: 1; padding: 6px 0; background: #fff5f5; color: #e53e3e; border: 1px solid #fed7d7; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s;"
+                onmouseover="this.style.background='#ffe3e3'"
+                onmouseout="this.style.background='#fff5f5'"
+            >
+              Отклонить
             </button>
           </div>
         </div>
+
       </div>
       <div v-else style="color: #a4b0be; text-align: center; padding: 40px 0; font-size: 14px;">
-        Новых входящих заявок нет.
+        Нет новых входящих заявок.
       </div>
     </div>
 
-    <!-- ВКЛАДКА 3: ИСХОДЯЩИЕ ЗАЯВКИ -->
+    <!-- ВКЛАДКА 3: ОТПРАВЛЕННЫЕ ЗАЯВКИ -->
     <div v-if="activeTab === 'outgoing'">
-      <div v-if="outgoingRequests.length > 0" style="display: flex; flex-direction: column; gap: 14px;">
-        <div v-for="req in outgoingRequests" :key="req.addresseeId" style="padding: 16px; background: #fdfaf4; border-radius: 12px; border: 1px solid #fde8e8; display: flex; justify-content: space-between; align-items: center;">
-          <div @click="emit('open-user-profile', req.addresseeId)" style="font-size: 15px; color: #2c3e50; cursor: pointer;" title="Открыть профиль">
-            Вы отправили заявку пользователю <strong style="color: #d97706; transition: 0.2s;" onmouseover="this.style.color='#54a0ff'" onmouseout="this.style.color='#d97706'">{{ req.addresseeName || ('ID: ' + req.addresseeId) }}</strong>
+      <div v-if="outgoingRequests.length > 0" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; box-sizing: border-box;">
+
+        <div
+            v-for="req in outgoingRequests"
+            :key="req.id"
+            @click="emit('open-user-profile', req.addresseeId)"
+            style="display: flex; flex-direction: column; align-items: center; padding: 24px 16px; background: #f8f9fa; border-radius: 16px; border: 1px solid #edf2f7; cursor: pointer; transition: all 0.2s ease; box-sizing: border-box; text-align: center;"
+            onmouseover="this.style.transform='translateY(-4px)'; this.style.borderColor='#54a0ff'; this.style.boxShadow='0 8px 24px rgba(84,160,255,0.12)'; this.style.background='white';"
+            onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='#edf2f7'; this.style.boxShadow='none'; this.style.background='#f8f9fa';"
+            title="Открыть профиль"
+        >
+          <!-- Аватарка по центру -->
+          <div style="width: 50px; height: 50px; background: #f1f2f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #a4b0be; margin-bottom: 12px;">
+            👤
           </div>
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <span style="font-size: 12px; background: #fef3c7; color: #d97706; padding: 4px 10px; border-radius: 6px; font-weight: 600;">
-              Ожидание
-            </span>
-            <button @click="handleCancelRequest(req.addresseeId)" style="width: 28px; height: 28px; background: none; border: 1px solid #ff7675; color: #ff7675; border-radius: 50%; font-size: 16px; font-weight: 400; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: 0.2s; outline: none;" onmouseover="this.style.background='#ff7675'; this.style.color='white'" onmouseout="this.style.background='none'; this.style.color='#ff7675'" title="Отменить заявку">
-              ×
-            </button>
-          </div>
+
+          <!-- Имя и фамилия -->
+          <span style="font-size: 15px; font-weight: 600; color: #2c3e50; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; display: block; margin-bottom: 4px;">
+       {{ req.name || 'Пользователь' }}
+     </span>
+          <span style="font-size: 12px; color: #a4b0be; margin-bottom: 16px; display: block;">Заявка ожидает ответа</span>
+
+          <!-- Кнопка Отмены -->
+          <button
+              @click.stop="handleCancelRequest(req.addresseeId)"
+              title="Отозвать отправленную заявку в друзья"
+              style="width: 100%; padding: 6px 0; background: none; border: 1px solid #a4b0be; color: #57606f; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: auto;"
+              onmouseover="this.style.background='#f1f2f6'; this.style.borderColor='#57606f';"
+              onmouseout="this.style.background='none'; this.style.borderColor='#a4b0be';"
+          >
+            Отменить заявку
+          </button>
         </div>
+
       </div>
       <div v-else style="color: #a4b0be; text-align: center; padding: 40px 0; font-size: 14px;">
-        Вы еще никому не отправляли заявки.
+        Нет отправленных заявок.
       </div>
     </div>
 
@@ -110,11 +178,14 @@ import { ref, onMounted, watch } from 'vue'
 import axios from 'axios'
 
 const props = defineProps({
-  currentUserId: { type: Number, required: true }
+  currentUserId: { type: Number, required: true },
+  targetUserId: { type: Number, required: false, default: null },
+  targetUserName: { type: String, required: false, default: '' }
 })
 
 // ИСПРАВЛЕНО: Добавлен эмит update-count для передачи цифры наверх в App.vue
-const emit = defineEmits(['open-user-profile', 'update-count'])
+const emit = defineEmits(['open-user-profile', 'update-count', 'back-to-profile', 'open-chat'])
+
 
 const activeTab = ref('list')
 const friends = ref([])
@@ -139,11 +210,11 @@ const fetchUserName = async (userId) => {
 }
 
 const loadFriendsList = async () => {
-  if (!props.currentUserId) return
+  const activeId = props.targetUserId || props.currentUserId
+  if (!activeId) return
   try {
-    const response = await axios.get(`${API_PUBLIC}/${props.currentUserId}`)
-    const flatIds = response.data.map(f => f.userId1 === props.currentUserId ? f.userId2 : f.userId1)
-
+    const response = await axios.get(`${API_PUBLIC}/${activeId}`)
+    const flatIds = response.data.map(f => f.userId1 === activeId ? f.userId2 : f.userId1)
     const mappedFriends = []
     for (let id of flatIds) {
       const name = await fetchUserName(id)
@@ -156,34 +227,48 @@ const loadFriendsList = async () => {
 }
 
 const loadIncomingRequests = async () => {
+  if (!props.currentUserId) return
   try {
     const response = await axios.get(`${API_REQUESTS}/incoming`)
-    const list = response.data
+    const rawRequests = response.data
 
-    for (let req of list) {
-      req.requesterName = await fetchUserName(req.requesterId)
+    // 💡 Пробегаемся по каждой заявке и запрашиваем имя автора по его requesterId
+    const mappedRequests = []
+    for (let req of rawRequests) {
+      const name = await fetchUserName(req.requesterId)
+      mappedRequests.push({
+        ...req,
+        name: name // Записываем имя прямо в объект заявки
+      })
     }
-    incomingRequests.value = list
 
-    // ИСПРАВЛЕНО: Как только подгрузили заявки, сразу сообщаем App.vue их точное количество
-    emit('update-count', list.length)
+    incomingRequests.value = mappedRequests
   } catch (error) {
-    console.error('Ошибка входящих заявок:', error)
+    console.error('Ошибка загрузки входящих заявок:', error)
   }
 }
 
 const loadOutgoingRequests = async () => {
   try {
     const response = await axios.get(`${API_REQUESTS}/outgoing`, {
-      params: { page: 0, size: 20 }
+      params: { page: 0, size: 20, status: 'PENDING' }
     })
-    const list = response.data
-    for (let req of list) {
-      req.addresseeName = await fetchUserName(req.addresseeId)
+    const rawRequests = response.data
+
+    // 💡 Пробегаемся по каждой отправленной заявке и запрашиваем имя получателя по его addresseeId
+    const mappedRequests = []
+    for (let req of rawRequests) {
+      // Вызываем вашу общую функцию получения имени по ID
+      const name = await fetchUserName(req.addresseeId)
+      mappedRequests.push({
+        ...req,
+        name: name // Записываем реальное имя в объект, чтобы шаблон его увидел
+      })
     }
-    outgoingRequests.value = list
+
+    outgoingRequests.value = mappedRequests
   } catch (error) {
-    console.error('Ошибка исходящих заявок:', error)
+    console.error('Ошибка загрузки отправленных заявок:', error)
   }
 }
 
@@ -227,8 +312,13 @@ const handleRemoveFriend = async (friendId) => {
 
 const refreshAll = () => {
   loadFriendsList()
-  loadIncomingRequests()
-  loadOutgoingRequests()
+  if (!props.targetUserId) { // Загружаем заявки только для СЕБЯ
+    loadIncomingRequests()
+    loadOutgoingRequests()
+  } else {
+    incomingRequests.value = []
+    outgoingRequests.value = []
+  }
 }
 
 watch(() => props.currentUserId, () => {

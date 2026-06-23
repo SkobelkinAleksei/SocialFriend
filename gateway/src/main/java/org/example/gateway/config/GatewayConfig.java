@@ -37,13 +37,15 @@ public class GatewayConfig {
                         .path("/api/v1/social/likes/**")
                         .uri("http://localhost:8085"))
 
-                .route("notification", r -> r
-                        .path("/api/v1/social/notifications/**")
-                        .uri("http://localhost:8086"))
-
                 .route("security", r -> r
                         .path("/api/v1/social/auth/**")
                         .uri("http://localhost:8888"))
+                .route("chat", r -> r
+                        .path("/api/v1/social/chats/**", "/ws/chat/**")
+                        .uri("http://localhost:8087"))
+                .route("notification", r -> r
+                        .path("/api/v1/social/notifications/**", "/ws/notifications/**")
+                        .uri("http://localhost:8086"))
                 .build();
     }
 }

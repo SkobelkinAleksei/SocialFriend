@@ -35,8 +35,8 @@ public class NotificationEntity {
     @Column(name = "message")
     private String message;  // Текст уведомления
 
-    @Column(name = "is_read", nullable = false)
-    private boolean isRead = false;
+    @Column(name = "read", nullable = false)
+    private boolean read = false;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, columnDefinition = "TIMESTAMP(0)")

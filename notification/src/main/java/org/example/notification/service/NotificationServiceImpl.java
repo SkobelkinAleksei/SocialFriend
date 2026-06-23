@@ -14,12 +14,15 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
 import java.util.List;
 
 @RequiredArgsConstructor
 @Slf4j
 @Service
 public class NotificationServiceImpl implements NotificationService {
+
+    private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
     private final NotificationRepository repository;
     private final NotificationMapper notificationMapper;
 
@@ -32,11 +35,18 @@ public class NotificationServiceImpl implements NotificationService {
                 .type(event.getType())
                 .targetId(event.getTargetId())
                 .message(event.getMessage())
-                .isRead(false)
+                .read(false)
                 .build();
 
-        repository.save(entity);
+        NotificationEntity saved = repository.save(entity);
         log.info("[NotificationServiceImpl - INFO] Уведомление сохранено для пользователя {}", event.getReceiverId());
+        messagingTemplate.convertAndSendToUser(
+                String.valueOf(saved.getReceiverId()),
+                "/queue/notifications",
+                notificationMapper.toDto(saved)
+        );
+        log.info("[WebSocket] Живое уведомление отправлено пользователю {}", saved.getReceiverId());
+
     }
 
     @Override
@@ -67,7 +77,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional
     public void markAllAsRead(Long userId) {
-        List<NotificationEntity> unread = repository.findAllByReceiverIdAndIsReadFalse(userId);
+        List<NotificationEntity> unread = repository.findAllByReceiverIdAndReadFalse(userId);
 
         unread.forEach(n -> n.setRead(true));
         log.info("[NotificationServiceImpl - INFO] Все уведомления пользователя {} помечены как прочитанные", userId);

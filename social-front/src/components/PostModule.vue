@@ -1,5 +1,5 @@
 <template>
-  <div style="display: flex; flex-direction: column; gap: 20px; width: 100%; box-sizing: border-box; align-items: stretch;"
+  <div style="display: flex; flex-direction: column; gap: 20px; width: 100%; box-sizing: border-box; align-items: stretch;">
     <!-- ФОРМА СОЗДАНИЯ ПОСТА -->
     <div style="background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 20px rgba(164,176,190,0.06); border: 1px solid #edf2f7; width: 100%; box-sizing: border-box;">
       <h3 style="margin-top: 0; color: #2c3e50; font-size: 16px; margin-bottom: 15px; text-align: left;">Создать новую публикацию</h3>
@@ -15,7 +15,19 @@
 
     <!-- ЛЕНТА ПОСТОВ -->
     <div style="display: flex; flex-direction: column; gap: 16px; width: 100%; box-sizing: border-box;">
-      <div v-if="posts.length > 0" v-for="post in posts" :key="post.id" style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(164,176,190,0.04); border: 1px solid #edf2f7; position: relative; width: 100%; box-sizing: border-box; overflow: hidden;">
+      <div
+          v-if="posts.length > 0"
+          v-for="post in posts"
+          :key="post.id"
+          :id="'post-' + post.id"
+          style="border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(164,176,190,0.04); position: relative; width: 100%; box-sizing: border-box; overflow: hidden; transition: all 0.4s ease;"
+          :style="{
+             backgroundColor: Number(props.scrollToPostId) === Number(post.id) ? '#f4f9ff' : '#ffffff',
+             borderColor: Number(props.scrollToPostId) === Number(post.id) ? '#54a0ff' : '#edf2f7',
+             borderWidth: '1px',
+             borderStyle: 'solid'
+          }"
+      >
 
         <!-- Шапка поста -->
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; width: 100%;">
@@ -79,7 +91,13 @@
         <!-- БЛОК КОММЕНТАРИЕВ -->
         <div v-if="post.showComments" style="margin-top: 15px; border-top: 1px dashed #e1e8ed; padding-top: 15px; width: 100%; box-sizing: border-box; overflow: hidden;">
           <div style="display: flex; gap: 10px; margin-bottom: 15px; width: 100%;">
-            <input v-model="post.newCommentText" type="text" placeholder="Написать комментарий (2-100 симв.)..." style="flex: 1; padding: 10px 14px; border: 1px solid #ced6e0; border-radius: 8px; font-size: 13px; outline: none; background: #f8f9fa; min-width: 0;">
+            <input
+              v-model="post.newCommentText"
+              type="text"
+              @focus="cancelAllCommentsEditing(post)"
+              placeholder="Написать комментарий (2-100 симв.)..."
+              style="flex: 1; padding: 10px 14px; border: 1px solid #ced6e0; border-radius: 8px; font-size: 13px; outline: none; background: #f8f9fa; min-width: 0;"
+          >
             <button @click="handleCreateComment(post)" style="padding: 10px 18px; background: #54a0ff; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; flex-shrink: 0;">Отправить</button>
           </div>
 
@@ -129,15 +147,19 @@
   </div>
 </template>
 <script setup>
-import { ref, onMounted } from 'vue'
+import { nextTick, watch, ref, onMounted } from 'vue'
 import axios from 'axios'
 
 // Регистрируем эмит, чтобы App.vue знал о клике на автора
-const emit = defineEmits(['open-user-profile'])
+// Добавили событие окончания скролла
+const emit = defineEmits(['open-user-profile', 'post-scrolled'])
 
-defineProps({
+// Добавили два входных параметра для умной навигации
+const props = defineProps({
   currentUserId: { type: Number, required: true },
-  currentUserInfo: { type: Object, required: true }
+  currentUserInfo: { type: Object, required: true }, // 💡 ВОТ ОН! Возвращаем объект вашего профиля
+  scrollToPostId: { type: Number, required: false, default: null },
+  openCommentsTarget: { type: Boolean, required: false, default: false }
 })
 
 const API_POSTS = 'http://localhost:8080/api/v1/social/posts'
@@ -150,11 +172,14 @@ const newPost = ref({ content: '', commentsAllowed: true })
 
 const loadMyPosts = async () => {
   try {
-    const response = await axios.get(`${API_POSTS}/my-posts`, {
-      params: { page: 0, size: 20, status: 'PUBLISHED' }
-    })
-    const fetchedPosts = response.data
+    // Динамически увеличиваем размер, если ищем конкретный пост
+    const pageSize = props.scrollToPostId ? 100 : 20;
 
+    const response = await axios.get(`${API_POSTS}/my-posts`, {
+      params: { page: 0, size: pageSize, status: 'PUBLISHED' }
+    })
+
+    const fetchedPosts = response.data
     for (let post of fetchedPosts) {
       const actualId = post.id
       post.showTooltip = false
@@ -162,11 +187,9 @@ const loadMyPosts = async () => {
       post.isEditing = false
       post.editContent = ''
       post.likers = []
-
       post.showComments = false
       post.newCommentText = ''
       post.commentsList = []
-
       try {
         const countRes = await axios.get(`${API_LIKES}/${actualId}/likes-count`)
         post.likesCount = countRes.data
@@ -178,7 +201,30 @@ const loadMyPosts = async () => {
         post.isLiked = false
       }
     }
+
+    // 1. Сохраняем загруженные посты в реактивный массив
     posts.value = fetchedPosts
+
+    if (props.scrollToPostId) {
+      await nextTick()
+      const targetIdClean = Number(props.scrollToPostId);
+      const postElement = document.getElementById(`post-${targetIdClean}`)
+
+      if (postElement) {
+        postElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+
+        const targetPostObj = posts.value.find(p => Number(p.id) === targetIdClean)
+        if (targetPostObj && targetPostObj.commentsAllowed) {
+          targetPostObj.showComments = true
+          loadComments(targetPostObj)
+        }
+
+        setTimeout(() => {
+          emit('post-scrolled')
+        }, 1000)
+      }
+    }
+
   } catch (error) {
     console.error('Ошибка при загрузке постов:', error)
   }
@@ -194,16 +240,45 @@ const toggleCommentsBlock = async (post) => {
 const loadComments = async (post) => {
   try {
     const response = await axios.get(`${API_COMMENTS_PUBLIC}/post/${post.id}`)
-    post.commentsList = response.data.map(comment => ({
-      ...comment,
-      isEditing: false,
-      editContent: '',
-      isExpanded: false
-    }))
+    const rawComments = response.data
+    const mappedComments = []
+
+    // 💡 Пробегаемся по каждому комментарию и догружаем имя автора из микросервиса пользователей
+    for (let comment of rawComments) {
+      let firstName = ''
+      let lastName = ''
+
+      // Если комментировал не текущий пользователь, запрашиваем данные из сети
+      if (Number(comment.authorId) !== Number(props.currentUserId)) {
+        try {
+          // Делаем запрос к вашему эндпоинту пользователей (используем порт шлюза 8080)
+          const userRes = await axios.get(`http://localhost:8080/api/v1/social/users/${comment.authorId}`)
+          if (userRes.data) {
+            firstName = userRes.data.firstName || ''
+            lastName = userRes.data.lastName || ''
+          }
+        } catch (userErr) {
+          console.error(`Не удалось загрузить имя автора комментария ${comment.authorId}:`, userErr)
+        }
+      }
+
+      mappedComments.push({
+        ...comment,
+        // Записываем поля, которые ждет верстка в шаблоне (Страница 3)
+        firstName: firstName,
+        lastName: lastName,
+        isEditing: false,
+        editContent: '',
+        isExpanded: false
+      })
+    }
+
+    post.commentsList = mappedComments
   } catch (error) {
     console.error('Ошибка загрузки комментариев:', error)
   }
 }
+
 
 const handleCreateComment = async (post) => {
   const textLen = post.newCommentText.trim().length
@@ -223,6 +298,17 @@ const handleCreateComment = async (post) => {
 const startEditComment = (comment) => {
   comment.editContent = comment.content
   comment.isEditing = true
+}
+
+const cancelAllCommentsEditing = (post) => {
+  if (post.commentsList && post.commentsList.length > 0) {
+    post.commentsList.forEach(comment => {
+      if (comment.isEditing) {
+        comment.isEditing = false
+        comment.editContent = '' // Сбрасываем буфер редактирования
+      }
+    })
+  }
 }
 
 const handleUpdateComment = async (post, comment) => {
@@ -351,6 +437,28 @@ const getRelativeTime = (dateTimeString) => {
   if (diffMs < 60000) return 'только что'
   return postDate.toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })
 }
+// 💡 Наблюдатель, который сработает, если мы переходим из уведомлений, а посты уже есть в памяти
+watch(() => props.scrollToPostId, async (newId) => {
+  if (!newId || posts.value.length === 0) return
+
+  await nextTick()
+  const targetIdClean = Number(newId);
+  const postElement = document.getElementById(`post-${targetIdClean}`)
+
+  if (postElement) {
+    postElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+
+    const targetPostObj = posts.value.find(p => Number(p.id) === targetIdClean)
+    if (targetPostObj && targetPostObj.commentsAllowed) {
+      targetPostObj.showComments = true
+      loadComments(targetPostObj)
+    }
+
+    setTimeout(() => {
+      emit('post-scrolled')
+    }, 1000) // Подсветка на 1 секунду
+  }
+})
 
 onMounted(() => {
   loadMyPosts()

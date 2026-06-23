@@ -10,4 +10,5 @@ include 'like'
 include 'notification'
 include 'rest-client'
 include 'common'
+include 'chat'
 
