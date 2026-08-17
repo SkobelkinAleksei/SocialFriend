@@ -15,6 +15,11 @@ public class SecurityUserDetails implements UserDetails {
     public Long getId() {
         return user.getId();
     }
+
+    public String getPlatformRole() {
+        return user.effectivePlatformRole();
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return Collections.emptyList();
@@ -28,5 +33,15 @@ public class SecurityUserDetails implements UserDetails {
     @Override
     public String getUsername() {
         return user.getUsername();
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return !user.isLockedNow();
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return user.isEnabled();
     }
 }

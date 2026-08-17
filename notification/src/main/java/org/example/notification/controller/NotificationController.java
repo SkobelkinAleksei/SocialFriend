@@ -1,6 +1,7 @@
 package org.example.notification.controller;
 
 import com.example.common.kafka.NotificationDto;
+import com.example.common.kafka.NotificationGroupDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.notification.service.NotificationService;
@@ -17,7 +18,7 @@ public class NotificationController {
     private final NotificationService notificationService;
 
     @GetMapping
-    public ResponseEntity<List<NotificationDto>> getUserNotifications(
+    public ResponseEntity<List<NotificationGroupDto>> getUserNotifications(
             @RequestHeader("X-User-Id") String userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
@@ -39,6 +40,18 @@ public class NotificationController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/mark-group-read")
+    public ResponseEntity<Void> markGroupAsRead(
+            @RequestHeader("X-User-Id") String userId,
+            @RequestBody List<Long> notificationIds
+    ) {
+        long currentUserId = Long.parseLong(userId);
+        log.info("[NotificationController - INFO] Пометка группы из {} уведомлений как прочитанной для пользователя {}",
+                notificationIds.size(), currentUserId);
+        notificationService.markGroupAsRead(notificationIds, currentUserId);
+        return ResponseEntity.noContent().build();
+    }
+
     @PatchMapping("/read-all")
     public ResponseEntity<Void> markAllAsRead(
             @RequestHeader("X-User-Id") String userId
@@ -46,5 +59,17 @@ public class NotificationController {
         long currentUserId = Long.parseLong(userId);
         notificationService.markAllAsRead(currentUserId);
         return ResponseEntity.noContent().build();
+    }
+
+    // Получить количество непрочитанных уведомлений пользователя для колокольчика в UI
+    @GetMapping("/unread-count")
+    public ResponseEntity<Long> getUnreadCount(
+            @RequestHeader("X-User-Id") String userId
+    ) {
+        long currentUserId = Long.parseLong(userId);
+        log.info("[NotificationController - INFO] Запрос количества непрочитанных уведомлений для пользователя: {}", currentUserId);
+
+        long unreadCount = notificationService.countUnreadNotifications(currentUserId);
+        return ResponseEntity.ok(unreadCount);
     }
 }

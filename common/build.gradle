@@ -9,4 +9,14 @@ dependencies {
     implementation 'org.springframework.kafka:spring-kafka:3.3.9'
     api 'com.fasterxml.jackson.core:jackson-databind:2.17.2'
     api 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.2'
+    api 'jakarta.validation:jakarta.validation-api:3.0.2'
+    api 'io.micrometer:micrometer-core'
+    compileOnly 'org.springframework.boot:spring-boot-autoconfigure'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+    useJUnitPlatform()
 }

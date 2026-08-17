@@ -1,16 +1,75 @@
+# Полный район: Postgres + Kafka + сервисы + фронт + Grafana.
+# Локально секреты в .env не обязательны (стоят дефолты как в yaml).
+# На сервере: скопируйте .env.example → .env и заполните пароли/JWT.
+#
+# Подъём: docker compose up --build
+# Свой Postgres на ПК (порт 5432) не трогаем — в Docker своя база, порт наружу не открыт.
+
+x-spring-env: &spring-env
+  TZ: Europe/Moscow
+  JAVA_OPTS: "-XX:MaxRAMPercentage=75.0 -Djava.net.preferIPv4Stack=true"
+  KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+  SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: "4"
+  SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: "1"
+  SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-postgres}
+  SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-password}
+  JWT_SECRET: ${JWT_SECRET:-your-very-strong-secret-key-32-characters-long}
+  INTERNAL_API_KEY: ${INTERNAL_API_KEY:-local-internal-api-key-change-in-prod}
+  APP_INTERNAL_API_KEY: ${INTERNAL_API_KEY:-local-internal-api-key-change-in-prod}
+  DADATA_API_KEY: ${DADATA_API_KEY:-954b79dfc669d151e9845c6e9220d62407b46814}
+  APP_USER_URL: http://user:8081
+  APP_FRIEND_URL: http://friend:8082
+  APP_POST_URL: http://post:8083
+  APP_COMMENT_URL: http://comment:8084
+  APP_LIKE_URL: http://like:8085
+  APP_NOTIFICATION_URL: http://notification:8086
+  APP_NOTIFICATION_WS_URL: ws://notification:8086
+  APP_CHAT_URL: http://chat:8087
+  APP_CHAT_WS_URL: ws://chat:8087
+  APP_EVENT_URL: http://event:8088
+  APP_SECURITY_URL: http://security:8888
+  APP_SCHEDULER_URL: http://scheduler:8090
+  APP_CORS_ORIGINS: ${APP_CORS_ORIGINS:-http://localhost,http://127.0.0.1,http://localhost:80,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://192.168.0.162:5173}
+
+x-jvm: &jvm
+  restart: unless-stopped
+  depends_on:
+    postgres:
+      condition: service_healthy
+    kafka:
+      condition: service_healthy
+
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sf-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${SPRING_DATASOURCE_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-password}
+      POSTGRES_DB: postgres
+    command: ["postgres", "-c", "max_connections=200"]
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SPRING_DATASOURCE_USERNAME:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
     container_name: zookeeper
+    restart: unless-stopped
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
 
   kafka:
     image: confluentinc/cp-kafka:7.3.0
     container_name: kafka
+    restart: unless-stopped
     depends_on:
       - zookeeper
     ports:
@@ -18,8 +77,242 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 15s
+      retries: 18
+      start_period: 90s
+
+  security:
+    <<: *jvm
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: security
+        MANAGEMENT_PORT: 18888
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/social_security_db
+
+  user:
+    <<: *jvm
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: user
+        MANAGEMENT_PORT: 18081
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/social_user_db
+      APP_ADMIN_USER_IDS: ${APP_ADMIN_USER_IDS:-}
+      APP_ADMIN_EMAILS: ${APP_ADMIN_EMAILS:-}
+    volumes:
+      - user-uploads:/app/uploads/users
+
+  friend:
+    <<: *jvm
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: friend
+        MANAGEMENT_PORT: 18082
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/social_friend_db
+
+  post:
+    <<: *jvm
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: post
+        MANAGEMENT_PORT: 18083
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/social_post_db
+    volumes:
+      - post-uploads:/app/uploads/posts
+
+  comment:
+    <<: *jvm
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: comment
+        MANAGEMENT_PORT: 18084
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/social_comment_db
+
+  like:
+    <<: *jvm
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: like
+        MANAGEMENT_PORT: 18085
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/social_like_db
+
+  notification:
+    <<: *jvm
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: notification
+        MANAGEMENT_PORT: 18086
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/social_notification_db
+
+  chat:
+    <<: *jvm
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: chat
+        MANAGEMENT_PORT: 18087
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/social_chat_db
+    volumes:
+      - chat-uploads:/app/uploads/chats
+
+  event:
+    <<: *jvm
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: event
+        MANAGEMENT_PORT: 18088
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/social_event_db
+    volumes:
+      - event-uploads:/app/uploads/events
+
+  scheduler:
+    <<: *jvm
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: scheduler
+        MANAGEMENT_PORT: 18090
+    environment:
+      <<: *spring-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/social_scheduler_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      event:
+        condition: service_healthy
+      chat:
+        condition: service_healthy
+      security:
+        condition: service_healthy
+
+  gateway:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service
+      args:
+        SERVICE: gateway
+        MANAGEMENT_PORT: 18080
+    ports:
+      - "8080:8080"
+    environment:
+      <<: *spring-env
+    depends_on:
+      user:
+        condition: service_healthy
+      friend:
+        condition: service_healthy
+      post:
+        condition: service_healthy
+      comment:
+        condition: service_healthy
+      like:
+        condition: service_healthy
+      notification:
+        condition: service_healthy
+      chat:
+        condition: service_healthy
+      event:
+        condition: service_healthy
+      security:
+        condition: service_healthy
+
+  frontend:
+    restart: unless-stopped
+    build:
+      context: ${FRONTEND_DIR:-C:/Users/Магамед/Desktop/MyRaion}
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      gateway:
+        condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+    depends_on:
+      - gateway
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    container_name: grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_DEFAULT_LANGUAGE: ru
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/myraion.json
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+
+volumes:
+  postgres-data:
+  prometheus-data:
+  grafana-data:
+  user-uploads:
+  post-uploads:
+  chat-uploads:
+  event-uploads:

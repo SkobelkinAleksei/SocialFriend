@@ -1,9 +1,9 @@
 package org.example.user.controller;
 
+import com.example.common.dto.event.UserDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.user.dto.RegistrationUserDto;
-import org.example.user.dto.UserDto;
 import org.example.user.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

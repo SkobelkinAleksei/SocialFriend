@@ -22,10 +22,12 @@ public class PostController {
 
     @GetMapping("/id/{postId}")
     public ResponseEntity<PostDto> findPostById(
+            @RequestHeader("X-User-Id") String userId,
             @PathVariable(name = "postId") Long postId
     ) {
+        Long currentUserId = Long.parseLong(userId);
         log.info("[PostController - INFO] Пришел запрос на получение поста с id: {}", postId);
-        return ResponseEntity.ok().body(postService.findPostById(postId));
+        return ResponseEntity.ok().body(postService.findPostById(postId, currentUserId));
     }
 
     @PostMapping
@@ -54,10 +56,14 @@ public class PostController {
 
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<PostDto>> findPostsByAuthor(
-            @PathVariable(name = "userId") Long userId
+            @RequestHeader("X-User-Id") String viewerId,
+            @PathVariable(name = "userId") Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size
     ) {
+        Long currentUserId = Long.parseLong(viewerId);
         log.info("[PostController - INFO] Пришел запрос на получение постов пользователя с id: {}", userId);
-        return ResponseEntity.ok().body(postService.findPostsByAuthor(userId));
+        return ResponseEntity.ok().body(postService.findPostsByAuthor(userId, currentUserId, page, size));
     }
 
     @GetMapping("/my-posts")
@@ -65,7 +71,7 @@ public class PostController {
             @RequestHeader("X-User-Id") String userId,
             @RequestParam(required = false) List<StatusPost> status,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "5") int size
     ) {
         Long currentUserId = Long.parseLong(userId);
         log.info("[PostController - INFO] Пришел запрос на поиск постов автора id: {} по статусам: {}, страница: {}, размер: {}",
@@ -82,5 +88,14 @@ public class PostController {
         log.info("[PostController - INFO] Пришел запрос удаление поста с id: {} пользователем с id: {}", postId, currentUserId);
         postService.deletePost(currentUserId, postId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{postId}/view")
+    public ResponseEntity<Long> registerView(
+            @RequestHeader("X-User-Id") String userId,
+            @PathVariable Long postId
+    ) {
+        Long viewerId = Long.parseLong(userId);
+        return ResponseEntity.ok(postService.registerView(postId, viewerId));
     }
 }

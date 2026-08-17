@@ -1,0 +1,249 @@
+:root {
+    --ink: #1C1824;
+    --cream: #FFFCFA;
+    --lilac: #EFEAF6;
+    --plum: #5C4B7A;
+    --blush: #B85C5C;
+    --sage: #4A8B6F;
+    --muted: #8A8494;
+}
+
+html, body, #root {
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+    overscroll-behavior-x: none;
+    overflow-x: clip;
+    max-width: 100%;
+}
+
+/* Chrome/Safari: date/time имеют огромный min-width и игнорируют padding — ломают 390px. */
+input[type='date'],
+input[type='time'] {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+input[type='date']::-webkit-datetime-edit,
+input[type='time']::-webkit-datetime-edit {
+    padding: 0 2px;
+    min-width: 0;
+}
+input[type='date']::-webkit-calendar-picker-indicator,
+input[type='time']::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    margin-left: 4px;
+    opacity: 0.7;
+}
+
+html, body, #root, button, input, textarea, select {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 400;
+    color: var(--ink);
+}
+
+/* iOS зумит страницу, если в фокусе поле < 16px. На компактных экранах фиксируем размер. */
+@media (max-width: 1023px) {
+    input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']):not([type='range']):not([type='button']):not([type='submit']):not([type='reset']),
+    textarea,
+    select {
+        font-size: 16px !important;
+    }
+}
+
+@media (display-mode: standalone) {
+    html, body {
+        overscroll-behavior-y: none;
+    }
+}
+
+.font-thin, .font-extralight, .font-light, .font-normal,
+.font-medium, .font-semibold {
+    font-weight: 400 !important;
+}
+.font-bold, .font-extrabold, .font-black {
+    font-weight: 700 !important;
+}
+
+.myraion-display {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 700;
+}
+
+@keyframes like-pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.25); }
+    100% { transform: scale(1); }
+}
+
+@keyframes count-bump {
+    0% { transform: translateY(0); opacity: 0.5; }
+    50% { transform: translateY(-4px); opacity: 1; }
+    100% { transform: translateY(0); }
+}
+
+.animate-like-heart {
+    animation: like-pop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+.animate-count-change {
+    animation: count-bump 0.25s ease-out forwards;
+}
+
+.myraion-event-card {
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s ease;
+    box-shadow: 0 20px 44px -28px rgba(92, 75, 122, 0.45);
+}
+.myraion-event-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 28px 50px -24px rgba(92, 75, 122, 0.4);
+}
+.myraion-page-wash {
+    background:
+        radial-gradient(820px 420px at 12% -12%, rgba(197, 184, 230, 0.55), transparent 58%),
+        radial-gradient(640px 360px at 92% 8%, rgba(184, 212, 196, 0.35), transparent 52%),
+        var(--lilac);
+}
+.myraion-events-board {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+.myraion-h1 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 700;
+    font-size: 2.5rem;
+    line-height: 0.95;
+    color: #1C1824;
+}
+.myraion-card-surface {
+    background: #FFFCFA;
+    border-radius: 32px;
+    box-shadow: 0 20px 44px -28px rgba(92, 75, 122, 0.45);
+}
+
+.message-bubble {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: clip;
+    overflow-wrap: anywhere;
+    word-break: break-all;
+}
+
+.leaflet-control-attribution,
+.leaflet-attribution-flag {
+    display: none !important;
+}
+.district-map .leaflet-control-zoom {
+    border: none;
+    overflow: hidden;
+    border-radius: 14px;
+    box-shadow: 0 10px 28px -14px rgba(28, 24, 36, 0.5);
+}
+.district-map .leaflet-bar a {
+    background: #FFFCFA;
+    color: #1C1824;
+    border-bottom: 1px solid rgba(28, 24, 36, 0.08);
+    width: 36px;
+    height: 36px;
+    line-height: 36px;
+}
+.district-map .leaflet-bar a:hover,
+.district-map .leaflet-bar a:focus {
+    background: #EDE6F5;
+    color: #5C4B7A;
+}
+.district-map .leaflet-bar a.leaflet-disabled {
+    background: #F4F1F7;
+    color: #C4BECB;
+}
+.district-map-tools {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 14px;
+    box-shadow: 0 10px 28px -14px rgba(28, 24, 36, 0.5);
+    border: 1px solid rgba(28, 24, 36, 0.08);
+    background: #FFFCFA;
+}
+.district-map-tools button {
+    width: 36px;
+    height: 36px;
+    color: #1C1824;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid rgba(28, 24, 36, 0.08);
+    background: #FFFCFA;
+}
+.district-map-tools button:last-child {
+    border-bottom: none;
+}
+.district-map-tools button:hover:not(:disabled) {
+    background: #EDE6F5;
+    color: #5C4B7A;
+}
+.district-map-tools button:disabled {
+    color: #C4BECB;
+    cursor: default;
+}
+.district-home-marker,
+.district-gps-marker {
+    background: transparent !important;
+    border: none !important;
+}
+.district-gps-marker__dot {
+    width: 16px;
+    height: 16px;
+    margin: 5px;
+    border-radius: 999px;
+    background: #3B82F6;
+    border: 2px solid #FFFCFA;
+    box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.22);
+}
+.district-cluster-marker {
+    background: transparent !important;
+    border: none !important;
+}
+.district-cluster-marker__stack {
+    position: relative;
+    width: 28px;
+    height: 28px;
+}
+.district-cluster-marker__dot,
+.district-cluster-marker__front {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid #FFFCFA;
+    box-sizing: border-box;
+}
+.district-cluster-marker__dot--events {
+    left: 33%;
+    top: 0;
+    background: #3D6B56;
+    z-index: 1;
+}
+.district-cluster-marker__dot--dvizh {
+    left: 0;
+    top: 0;
+    background: #5C4B7A;
+    z-index: 2;
+}
+.district-cluster-marker__front {
+    left: 16.5%;
+    top: 33%;
+    background: #1C1824;
+    color: #FFFCFA;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 15px;
+    text-align: center;
+    z-index: 3;
+    box-shadow: 0 2px 6px rgba(28, 24, 36, 0.3);
+}

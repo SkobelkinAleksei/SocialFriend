@@ -1,0 +1,64 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: chat
+  main:
+    allow-bean-definition-overriding: true
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 25MB
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/social_chat_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    defer-datasource-initialization: true
+    show-sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  sql:
+    init:
+      mode: always
+      continue-on-error: true
+
+  logging:
+    level:
+      org.springframework.cloud.gateway: DEBUG
+      reactor.netty.http.client: DEBUG
+      org.springframework.web: DEBUG
+      org.hibernate.SQL: DEBUG
+      org.springframework.orm.jpa: DEBUG
+
+# Internal service-to-service (минуя JWT gateway)
+app:
+  upload:
+    dir: ./uploads/chats
+  services:
+    user-base-url: ${APP_USER_URL:http://localhost:8081}
+    event-base-url: ${APP_EVENT_URL:http://localhost:8088}
+    friend-base-url: ${APP_FRIEND_URL:http://localhost:8082}
+  internal:
+    api-key: ${INTERNAL_API_KEY:local-internal-api-key-change-in-prod}
+
+management:
+  server:
+    port: 18087
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: never
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}

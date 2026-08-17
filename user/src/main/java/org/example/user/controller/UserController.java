@@ -1,5 +1,6 @@
 package org.example.user.controller;
 
+import com.example.common.dto.event.UserDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,12 +18,27 @@ import java.util.List;
 public class UserController {
     private final UserService userService;
 
+    @PostMapping("/me/presence")
+    public ResponseEntity<Void> heartbeat(@RequestHeader("X-User-Id") String userId) {
+        userService.heartbeat(Long.parseLong(userId));
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/presence")
+    public ResponseEntity<java.util.Map<Long, UserPresenceDto>> getPresence(
+            @RequestParam(required = false) List<Long> ids
+    ) {
+        return ResponseEntity.ok(userService.getPresence(ids == null ? List.of() : ids));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<UserDto> getUserById(
             @PathVariable Long id,
-            @RequestHeader("X-User-Id") String currentUserId
+            @RequestHeader(value = "X-User-Id", required = false) String currentUserId
     ) {
-        log.info("[UserController - INFO] Пришел запрос на получение профиля пользователя по id: {} от пользователя: {}", id, currentUserId);
+        // Header optional: gateway ставит его для UI; internal-вызовы (friend и др.) могут ходить без него
+        log.info("[UserController - INFO] Пришел запрос на получение профиля пользователя по id: {} от пользователя: {}",
+                id, currentUserId);
         return ResponseEntity.ok().body(userService.getUserById(id));
     }
 
@@ -56,6 +72,15 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping("/status")
+    public ResponseEntity<Void> updateMyBio(
+            @RequestHeader("X-User-Id") Long userId,
+            @Valid @RequestBody(required = false) UpdateBioDto newBio
+    ) {
+        userService.updateBio(userId, newBio);
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/search/by-email")
     public ResponseEntity<UserDto> searchUserByEmail(
             @RequestParam String email
@@ -64,16 +89,36 @@ public class UserController {
         return ResponseEntity.ok().body(userService.searchUserByEmail(email));
     }
 
+    @GetMapping("/search/by-ids")
+    public ResponseEntity<List<UserDto>> getUsersByIds(@RequestParam List<Long> ids) {
+        log.info("[UserController] Внутренний пакетный запрос пользователей по ids: {}", ids);
+        return ResponseEntity.ok().body(userService.getUsersByIds(ids));
+    }
+
     @GetMapping("/search")
     public ResponseEntity<List<UserDto>> search(
             @RequestHeader("X-User-Id") String userId,
             UserFilterDto filter,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "20") int size
     ) {
         log.info("[UserController - INFO] Пришел запрос на поиск пользователей по фильтру: {}, страница: {}, размер: {}",
                 filter, page, size);
         Long currentUserId = Long.parseLong(userId);
         return ResponseEntity.ok().body(userService.searchUsers(currentUserId, filter, page, size));
+    }
+
+    @GetMapping("/{userId}/profile")
+    public ResponseEntity<UserDto> getUserProfileForUi(
+            @PathVariable Long userId,
+            @RequestHeader("X-User-Id") Long viewerId // ID того, кто смотрит
+    ) {
+        return ResponseEntity.ok(userService.getUserProfileForViewer(userId, viewerId));
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteMyAccount(@RequestHeader("X-User-Id") String userId) {
+        userService.deleteMyAccount(Long.parseLong(userId));
+        return ResponseEntity.noContent().build();
     }
 }

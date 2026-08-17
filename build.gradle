@@ -32,5 +32,19 @@ subprojects {
         implementation 'org.springframework.boot:spring-boot-starter-validation'
         compileOnly 'org.projectlombok:lombok'
         annotationProcessor 'org.projectlombok:lombok'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+
+    afterEvaluate {
+        if (name != 'common' && name != 'rest-client') {
+            dependencies {
+                implementation 'org.springframework.boot:spring-boot-starter-actuator'
+                runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+            }
+        }
     }
 }

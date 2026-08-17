@@ -14,21 +14,58 @@ public class NotificationKafkaProducer {
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     @Async
-    public void sendEvent(Long receiverId, Long senderId, NotificationType type, Long targetId, String message) {
-        // Базовая проверка: не уведомляем самого себя
-        if (receiverId != null && receiverId.equals(senderId)) {
+    public void sendEvent(
+            Long receiverId,
+            Long senderId,
+            String senderFirstName,
+            String senderLastName,
+            NotificationType type,
+            Long targetId,
+            Long commentId,
+            String message
+    ) {
+        sendEvent(receiverId, senderId, senderFirstName, senderLastName, type, targetId, commentId, message, null);
+    }
+
+    @Async
+    public void sendEvent(
+            Long receiverId,
+            Long senderId,
+            String senderFirstName,
+            String senderLastName,
+            NotificationType type,
+            Long targetId,
+            Long commentId,
+            String message,
+            String contextLabel
+    ) {
+        if (receiverId != null && receiverId > 0 && receiverId.equals(senderId)) {
             return;
         }
 
         NotificationEvent event = NotificationEvent.builder()
                 .receiverId(receiverId)
                 .senderId(senderId)
+                .senderFirstName(senderFirstName)
+                .senderLastName(senderLastName)
                 .type(type)
                 .targetId(targetId)
+                .commentId(commentId)
                 .message(message)
+                .contextLabel(contextLabel)
                 .build();
 
-        log.info("[NotificationKafkaProducer - INFO] Отправка уведомления типа {} для пользователя {}", type, receiverId);
-        kafkaTemplate.send("notifications", event);
+        kafkaTemplate.send("notifications", String.valueOf(receiverId), event);
+    }
+
+    @Async
+    public void sendEvent(NotificationEvent event) {
+        if (event == null || event.getReceiverId() == null) {
+            return;
+        }
+        if (event.getReceiverId() > 0 && event.getReceiverId().equals(event.getSenderId())) {
+            return;
+        }
+        kafkaTemplate.send("notifications", String.valueOf(event.getReceiverId()), event);
     }
 }

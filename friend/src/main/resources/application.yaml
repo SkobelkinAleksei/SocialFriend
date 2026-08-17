@@ -6,10 +6,12 @@ spring:
     name: friend
   main:
     allow-bean-definition-overriding: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
   datasource:
-    url: jdbc:postgresql://localhost:5432/social_friend_db
-    username: postgres
-    password: password
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/social_friend_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -19,8 +21,29 @@ spring:
 
   logging:
     level:
-      org.springframework.cloud.gateway: DEBUG
-      reactor.netty.http.client: DEBUG
       org.springframework.web: DEBUG
       org.hibernate.SQL: DEBUG
       org.springframework.orm.jpa: DEBUG
+
+# Internal service-to-service (минуя JWT gateway)
+app:
+  internal:
+    api-key: ${INTERNAL_API_KEY:local-internal-api-key-change-in-prod}
+  services:
+    user-base-url: ${APP_USER_URL:http://localhost:8081}
+
+management:
+  server:
+    port: 18082
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: never
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}

@@ -1,12 +1,11 @@
 package org.example.user.utils;
 
+import com.example.common.dto.event.UserDto;
 import lombok.RequiredArgsConstructor;
 import org.example.user.dto.UpdatePasswordUserDto;
 import org.example.user.dto.UpdateUserDto;
-import org.example.user.dto.UserDto;
 import org.example.user.entity.UserEntity;
 import org.example.user.mapper.UserMapper;
-import org.example.user.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -41,8 +40,24 @@ public class UserUpdateService {
             userEntity.setNumberPhone(updateAccountUser.getNumberPhone());
         }
 
-        if (isNotBlank(String.valueOf(updateAccountUser.getBirthday()))) {
+        if (updateAccountUser.getBirthday() != null) {
             userEntity.setBirthday(updateAccountUser.getBirthday());
+        }
+
+        if (isNotBlank(updateAccountUser.getCity())) {
+            userEntity.setCity(updateAccountUser.getCity());
+        }
+        if (isNotBlank(updateAccountUser.getStreetAddress())) {
+            userEntity.setStreetAddress(updateAccountUser.getStreetAddress());
+        }
+        if (isNotBlank(updateAccountUser.getDistrictName())) {
+            userEntity.setDistrictName(updateAccountUser.getDistrictName());
+        }
+        if (updateAccountUser.getHomeLatitude() != null) {
+            userEntity.setHomeLatitude(updateAccountUser.getHomeLatitude());
+        }
+        if (updateAccountUser.getHomeLongitude() != null) {
+            userEntity.setHomeLongitude(updateAccountUser.getHomeLongitude());
         }
 
         return userMapper.toDto(userEntity);

@@ -19,11 +19,17 @@ public interface FriendRequestService {
             int size
     );
 
-    List<FriendRequestDto> getIncomingRequests(Long currentUserId, int page, int size);
+    List<FriendRequestDto> getIncomingRequests(Long currentUserId, FriendRequestStatus status, int page, int size);
 
     void processFriendRequest(
             Long requestId,
             ResponseFriendRequest status,
             Long currentUserId
     ) throws AccessDeniedException;
+
+    long countSubscribers(Long userId, FriendRequestStatus friendRequestStatus);
+
+    long countIncomingRequests(Long currentUserId, FriendRequestStatus status);
+
+    long countOutgoingRequests(Long currentUserId, FriendRequestStatus status);
 }

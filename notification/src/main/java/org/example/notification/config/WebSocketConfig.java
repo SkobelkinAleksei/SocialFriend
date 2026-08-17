@@ -1,5 +1,6 @@
 package org.example.notification.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -14,55 +15,90 @@ import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
 import java.security.Principal;
+import java.util.Map;
 
+@Slf4j
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // Регистрируем ту же точку входа для вебсокетов, что и в чате
-        registry.addEndpoint("/ws/notifications") // 👈 Сделайте путь уникальным!
-                .setAllowedOriginPatterns("*")
-                .withSockJS();
+        registry.addEndpoint("/ws/notifications")
+                .addInterceptors(new UserIdHandshakeInterceptor())
+                .setAllowedOriginPatterns("*");
     }
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        // Настраиваем префиксы очередей
-        registry.enableSimpleBroker("/queue", "/topic");
+        registry.setApplicationDestinationPrefixes("/app");
+        registry.enableSimpleBroker("/topic", "/queue");
         registry.setUserDestinationPrefix("/user");
     }
 
-    // 💡 ДОБАВИТЬ: Перехватчик для авторизации WebSocket-сессий
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
         registration.interceptors(new ChannelInterceptor() {
             @Override
             public Message<?> preSend(Message<?> message, MessageChannel channel) {
                 StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+                if (accessor == null) {
+                    return message;
+                }
 
-                if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
-                    // 💡 Читаем заголовок, который мы только что отправили из App.vue
-                    String userId = accessor.getFirstNativeHeader("X-User-Id");
+                if (StompCommand.CONNECT.equals(accessor.getCommand())) {
+                    String userId = handshakeUserId(accessor);
+                    if (userId == null) {
+                        throw new IllegalArgumentException("WebSocket CONNECT без handshake userId запрещён");
+                    }
+                    accessor.setUser(() -> userId);
+                    log.info("[WebSocket-Notifications] CONNECT userId={}", userId);
+                }
 
-                    if (userId != null) {
-                        final String finalUserId = userId;
-                        accessor.setUser(new Principal() {
-                            @Override
-                            public String getName() {
-                                return finalUserId;
-                            }
-                        });
-                        // Лог в консоль микросервиса для проверки, что юзер распознан:
-                        System.out.println("[WebSocket-Сессия] Пользователь " + finalUserId + " успешно авторизован в WebSocket!");
-                    } else {
-                        System.out.println("[WebSocket-Сессия] ПРЕДУПРЕЖДЕНИЕ: Заголовок X-User-Id не найден в CONNECT!");
+                if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
+                    Principal principal = accessor.getUser();
+                    if (principal == null || principal.getName() == null) {
+                        throw new IllegalArgumentException("SUBSCRIBE без авторизации запрещён");
+                    }
+                    String dest = accessor.getDestination();
+                    if (dest == null) {
+                        return message;
+                    }
+
+                    String name = principal.getName();
+                    if (dest.startsWith("/user/") && !dest.startsWith("/user/queue")) {
+                        if (!dest.startsWith("/user/" + name + "/") && !dest.equals("/user/" + name)) {
+                            throw new IllegalArgumentException("Запрещена подписка на чужую user-очередь");
+                        }
+                    }
+
+                    if (dest.startsWith("/topic/notifications-")) {
+                        String topicUserId = dest.substring("/topic/notifications-".length());
+                        int slash = topicUserId.indexOf('/');
+                        if (slash >= 0) {
+                            topicUserId = topicUserId.substring(0, slash);
+                        }
+                        if (!name.equals(topicUserId)) {
+                            throw new IllegalArgumentException("Запрещена подписка на чужие уведомления");
+                        }
                     }
                 }
+
                 return message;
             }
         });
     }
 
+    private static String handshakeUserId(StompHeaderAccessor accessor) {
+        Map<String, Object> attrs = accessor.getSessionAttributes();
+        if (attrs == null) {
+            return null;
+        }
+        Object raw = attrs.get(UserIdHandshakeInterceptor.USER_ID_ATTR);
+        if (raw == null) {
+            return null;
+        }
+        String userId = String.valueOf(raw).trim();
+        return userId.isBlank() ? null : userId;
+    }
 }

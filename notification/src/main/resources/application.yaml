@@ -6,10 +6,12 @@ spring:
     name: notification
   main:
     allow-bean-definition-overriding: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
   datasource:
-    url: jdbc:postgresql://localhost:5432/social_notification_db
-    username: postgres
-    password: password
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/social_notification_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -24,3 +26,23 @@ spring:
       org.springframework.web: DEBUG
       org.hibernate.SQL: DEBUG
       org.springframework.orm.jpa: DEBUG
+
+app:
+  internal:
+    api-key: ${INTERNAL_API_KEY:local-internal-api-key-change-in-prod}
+
+management:
+  server:
+    port: 18086
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: never
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}

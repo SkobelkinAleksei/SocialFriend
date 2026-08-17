@@ -1,0 +1,16 @@
+.git
+.idea
+.gradle
+**/build
+**/out
+uploads
+.env
+.env.*
+!.env.example
+*.iml
+.cursor
+observability
+docker-compose.yml
+docker-compose*.yml
+**/*.md
+**/.DS_Store

@@ -3,7 +3,7 @@ package org.example.post;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {"org.example.post", "org.example.restclient"})
 public class PostApplication {
 
     public static void main(String[] args) {

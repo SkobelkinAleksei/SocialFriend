@@ -24,11 +24,30 @@ public class GlobalExceptionHandler {
         );
     }
 
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ErrorResponse> handleConflict(DataIntegrityViolationException ex) {
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex) {
         return createResponse(
                 HttpStatus.CONFLICT,
-                "Ошибка базы данных",
+                "Действие запрещено",
+                ex.getMessage()
+        );
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleBadRequest(IllegalArgumentException ex) {
+        return createResponse(
+                HttpStatus.BAD_REQUEST,
+                "Некорректный запрос",
+                ex.getMessage()
+        );
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConflict(DataIntegrityViolationException ex) {
+        log.warn("[Like] Конфликт целостности данных: {}", ex.getMostSpecificCause().getMessage());
+        return createResponse(
+                HttpStatus.CONFLICT,
+                "Конфликт данных",
                 "Это действие уже было выполнено или нарушает правила уникальности"
         );
     }
@@ -41,10 +60,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleAll(Exception ex) {
+        log.error("[Like] Необработанная ошибка", ex);
         return createResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "Системная ошибка сервиса лайков",
-                "Не удалось выполнить операцию. Детали: " + ex.getMessage()
+                "Не удалось выполнить операцию. Попробуйте позже"
         );
     }
 

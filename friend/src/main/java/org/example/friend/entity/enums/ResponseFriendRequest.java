@@ -1,6 +1,6 @@
 package org.example.friend.entity.enums;
 
-import lombok.Getter;
+import lombok.*;
 
 @Getter
 public enum ResponseFriendRequest {

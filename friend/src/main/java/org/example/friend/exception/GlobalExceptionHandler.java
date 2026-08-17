@@ -59,6 +59,11 @@ public class GlobalExceptionHandler {
         return createResponse(HttpStatus.BAD_REQUEST, "Ошибка приведения типов", message);
     }
 
+    @ExceptionHandler(NumberFormatException.class)
+    public ResponseEntity<ErrorResponse> handleNumberFormat(NumberFormatException ex) {
+        return createResponse(HttpStatus.BAD_REQUEST, "Ошибка приведения типов", "Некорректный числовой параметр");
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleAll(Exception ex) {
         log.error("Критическая ошибка: ", ex);

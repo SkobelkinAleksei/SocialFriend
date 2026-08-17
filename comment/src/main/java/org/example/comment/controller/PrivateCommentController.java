@@ -20,8 +20,8 @@ public class PrivateCommentController {
             @RequestHeader("X-User-Id") String userId,
             @PathVariable(name = "commentId") Long commentId,
             @Valid @RequestBody NewCommentDto newCommentDto
-    ) {
-        Long currentUserId = Long.parseLong(userId);
+    ) throws AccessException {
+        Long currentUserId = parseUserId(userId);
         commentService.updateCommentById(commentId, currentUserId, newCommentDto);
         return ResponseEntity.noContent().build();
     }
@@ -31,8 +31,19 @@ public class PrivateCommentController {
             @RequestHeader("X-User-Id") String userId,
             @PathVariable Long commentId
     ) throws AccessException {
-        Long currentUserId = Long.parseLong(userId);
+        Long currentUserId = parseUserId(userId);
         commentService.deleteCommentById(commentId, currentUserId);
         return ResponseEntity.noContent().build();
+    }
+
+    private Long parseUserId(String userId) {
+        if (userId == null || userId.isBlank()) {
+            throw new IllegalArgumentException("Некорректный заголовок X-User-Id");
+        }
+        try {
+            return Long.parseLong(userId.trim());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Некорректный заголовок X-User-Id");
+        }
     }
 }

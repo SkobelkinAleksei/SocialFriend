@@ -44,7 +44,7 @@ public class FriendRequestController {
             @RequestHeader("X-User-Id") String userId,
             @RequestParam(required = false) FriendRequestStatus status,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "20") int size
     ) {
         Long currentUserId = Long.parseLong(userId);
         return ResponseEntity.ok().body(
@@ -55,12 +55,13 @@ public class FriendRequestController {
     @GetMapping("/incoming")
     public ResponseEntity<List<FriendRequestDto>> getIncomingRequests(
             @RequestHeader("X-User-Id") String userId,
+            @RequestParam(required = false) FriendRequestStatus status,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "20") int size
     ) {
         Long currentUserId = Long.parseLong(userId);
         return ResponseEntity.ok().body(
-                friendRequestService.getIncomingRequests(currentUserId, page, size)
+                friendRequestService.getIncomingRequests(currentUserId, status, page, size)
         );
     }
 
@@ -73,5 +74,30 @@ public class FriendRequestController {
         Long currentUserId = Long.parseLong(userId);
         friendRequestService.processFriendRequest(requestId, status, currentUserId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/count/outgoing")
+    public ResponseEntity<Long> countOutgoingRequests(
+            @RequestHeader("X-User-Id") String userId,
+            @RequestParam(required = false) FriendRequestStatus status
+    ) {
+        Long currentUserId = Long.parseLong(userId);
+        return ResponseEntity.ok(friendRequestService.countOutgoingRequests(currentUserId, status));
+    }
+
+    @GetMapping("/count/incoming")
+    public ResponseEntity<Long> countIncomingRequests(
+            @RequestHeader("X-User-Id") String userId,
+            @RequestParam(required = false) FriendRequestStatus status
+    ) {
+        Long currentUserId = Long.parseLong(userId);
+        return ResponseEntity.ok(friendRequestService.countIncomingRequests(currentUserId, status));
+    }
+
+    @GetMapping("/count/subscribers/{userId}")
+    public ResponseEntity<Long> getSubscribersCount(@PathVariable Long userId) {
+        // Передаем статус REJECTED из твоего Enum
+        long count = friendRequestService.countSubscribers(userId, FriendRequestStatus.REJECTED);
+        return ResponseEntity.ok(count);
     }
 }

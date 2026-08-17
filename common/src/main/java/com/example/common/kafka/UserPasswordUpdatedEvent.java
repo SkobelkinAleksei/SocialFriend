@@ -1,5 +1,7 @@
 package com.example.common.kafka;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,5 +13,9 @@ import lombok.Setter;
 @NoArgsConstructor
 public class UserPasswordUpdatedEvent {
     private Long userId;
-    private String newPassword;
+
+    /** BCrypt hash from user-service. Alias keeps old "newPassword" payloads working. */
+    @JsonProperty("passwordHash")
+    @JsonAlias("newPassword")
+    private String passwordHash;
 }

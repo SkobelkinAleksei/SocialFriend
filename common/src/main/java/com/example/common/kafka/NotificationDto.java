@@ -16,7 +16,11 @@ public class NotificationDto {
     private Long senderId;
     private NotificationType type;
     private Long targetId;
+    private Long commentId;
     private String message;
     private boolean read;
     private LocalDateTime createdAt;
+    private String senderFirstName;
+    private String senderLastName;
+    private String contextLabel;
 }

@@ -23,10 +23,10 @@ public class LikePostEntity {
     @Column(nullable = false)
     private Long id;
 
-    @Column(name = "user_id")
+    @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "post_id")
+    @Column(name = "post_id", nullable = false)
     private Long postId;
 
     @CreationTimestamp
@@ -37,7 +37,7 @@ public class LikePostEntity {
     @Column(name = "updated_at", columnDefinition = "TIMESTAMP(0)")
     private LocalDateTime updatedAt;
 
-    @Column(name = "like_status")
+    @Column(name = "like_status", nullable = false)
     @Enumerated(EnumType.STRING)
     private LikeStatus likeStatus;
 }

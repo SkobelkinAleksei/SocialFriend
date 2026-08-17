@@ -1,0 +1,82 @@
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+
+# Счётчики на внутренних портах Docker-сети. Наружу их не публикуем.
+scrape_configs:
+  - job_name: shlyuz
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['gateway:18080']
+        labels:
+          prilozhenie: 'Шлюз'
+
+  - job_name: bezopasnost
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['security:18888']
+        labels:
+          prilozhenie: 'Вход'
+
+  - job_name: polzovatel
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['user:18081']
+        labels:
+          prilozhenie: 'Пользователи'
+
+  - job_name: druzya
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['friend:18082']
+        labels:
+          prilozhenie: 'Друзья'
+
+  - job_name: lenty
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['post:18083']
+        labels:
+          prilozhenie: 'Лента'
+
+  - job_name: kommentarii
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['comment:18084']
+        labels:
+          prilozhenie: 'Комментарии'
+
+  - job_name: laiki
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['like:18085']
+        labels:
+          prilozhenie: 'Лайки'
+
+  - job_name: uvedomleniya
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['notification:18086']
+        labels:
+          prilozhenie: 'Уведомления'
+
+  - job_name: chat
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['chat:18087']
+        labels:
+          prilozhenie: 'Чаты'
+
+  - job_name: vstrechi
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['event:18088']
+        labels:
+          prilozhenie: 'Встречи'
+
+  - job_name: planirovshik
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['scheduler:18090']
+        labels:
+          prilozhenie: 'Планировщик'

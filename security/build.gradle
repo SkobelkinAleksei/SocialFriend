@@ -1,3 +1,7 @@
+plugins {
+    id 'org.springframework.boot'
+}
+
 description = 'security'
 
 dependencies {
@@ -15,6 +19,8 @@ dependencies {
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+    testImplementation 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    testImplementation 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
     // Тесты
     testImplementation 'org.springframework.boot:spring-boot-starter-test'

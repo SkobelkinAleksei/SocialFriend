@@ -1,0 +1,30 @@
+# syntax=docker/dockerfile:1
+# Один файл на все JVM-сервисы. Сервис задаётся build-arg SERVICE (модуль Gradle).
+# bootJar всех модулей — до ARG SERVICE, чтобы слой кэшировался между образами.
+# sharing=locked — параллельные сборки не дерутся за журнал Gradle.
+
+FROM eclipse-temurin:21-jdk AS build
+WORKDIR /src
+COPY gradlew settings.gradle build.gradle ./
+COPY gradle gradle
+COPY . .
+RUN sed -i 's/\r$//' gradlew && chmod +x gradlew
+RUN --mount=type=cache,target=/root/.gradle,sharing=locked \
+    ./gradlew bootJar -x test --no-daemon -Dorg.gradle.vfs.watch=false
+ARG SERVICE=user
+RUN JAR=$(ls "${SERVICE}/build/libs/"*.jar | grep -v plain | head -n 1) \
+    && cp "$JAR" /src/app.jar
+
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=build /src/app.jar /app/app.jar
+ARG MANAGEMENT_PORT=18081
+ENV MANAGEMENT_PORT=${MANAGEMENT_PORT}
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0 -Djava.net.preferIPv4Stack=true"
+EXPOSE 8080
+HEALTHCHECK --interval=20s --timeout=5s --start-period=120s --retries=12 \
+    CMD curl -fsS "http://127.0.0.1:${MANAGEMENT_PORT}/actuator/health" || exit 1
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]

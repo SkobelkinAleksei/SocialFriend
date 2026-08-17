@@ -13,7 +13,11 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "notifications")
+@Table(name = "notifications", indexes = {
+        @Index(name = "idx_notifications_receiver_created", columnList = "receiver_id, created_at"),
+        @Index(name = "idx_notifications_receiver_read", columnList = "receiver_id, read"),
+        @Index(name = "idx_notifications_like_lookup", columnList = "receiver_id, sender_id, type, target_id")
+})
 public class NotificationEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,8 +36,11 @@ public class NotificationEntity {
     @Column(name = "target_id")
     private Long targetId;   // айди поста, комментария или заявки
 
-    @Column(name = "message")
+    @Column(name = "message", length = 500)
     private String message;  // Текст уведомления
+
+    @Column(name = "comment_id")
+    private Long commentId;
 
     @Column(name = "read", nullable = false)
     private boolean read = false;
@@ -41,4 +48,14 @@ public class NotificationEntity {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, columnDefinition = "TIMESTAMP(0)")
     private LocalDateTime createdAt;
+
+    @Column(name = "sender_first_name")
+    private String senderFirstName;
+
+    @Column(name = "sender_last_name")
+    private String senderLastName;
+
+    /** Для чатов: PERSONAL или GROUP:название */
+    @Column(name = "context_label", length = 255)
+    private String contextLabel;
 }

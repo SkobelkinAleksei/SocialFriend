@@ -5,10 +5,7 @@ build/
 !**/src/test/**/build/
 
 ### IntelliJ IDEA ###
-.idea/modules.xml
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/libraries/
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -38,5 +35,14 @@ bin/
 ### VS Code ###
 .vscode/
 
-### Mac OS ###
 .DS_Store
+uploads/
+
+### Frontend snapshot in this repo
+frontend/node_modules/
+frontend/dist/
+
+### Секреты — не в git
+.env
+.env.local
+.env.*.local

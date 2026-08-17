@@ -14,7 +14,10 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @RequiredArgsConstructor
 @Entity
-@Table(name = "comments")
+@Table(name = "comments", indexes = {
+        @Index(name = "idx_comments_post_status_created", columnList = "post_id, comment_status, created_at"),
+        @Index(name = "idx_comments_target_status_created", columnList = "target_type, target_id, comment_status, created_at")
+})
 public class CommentEntity implements Serializable {
 
     @Id
@@ -25,11 +28,24 @@ public class CommentEntity implements Serializable {
     @Column(name = "post_id")
     private Long postId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "target_type", length = 20)
+    private CommentTargetType targetType;
+
+    @Column(name = "target_id")
+    private Long targetId;
+
     @Column(name = "author_id")
     private Long authorId;
 
-    @Column(name = "content", nullable = false)
+    @Column(name = "content", nullable = false, length = 1000)
     private String content;
+
+    @Column(name = "reply_to_user_id")
+    private Long replyToUserId;
+
+    @Column(name = "reply_to_comment_id")
+    private Long replyToCommentId;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, columnDefinition = "TIMESTAMP(0)")

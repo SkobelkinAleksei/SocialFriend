@@ -1,9 +1,9 @@
 package org.example.security.config;
 
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.example.security.entity.SecurityUserDetails;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
@@ -15,33 +15,46 @@ import java.util.Date;
 @Component
 public class JwtUtils {
 
-    private final SecretKey jwtSecret = Keys.hmacShaKeyFor(
-            "your-very-strong-secret-key-32-characters-long".getBytes(StandardCharsets.UTF_8)
-    );
+    private final SecretKey jwtSecret;
+    private final long accessExpirationMs;
 
-    private final long jwtExpirationMs = 86400000L;
+    public JwtUtils(
+            @Value("${app.jwt.secret}") String secret,
+            @Value("${app.jwt.access-expiration-ms}") long accessExpirationMs
+    ) {
+        this.jwtSecret = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.accessExpirationMs = accessExpirationMs;
+    }
 
-    public String generateToken(Authentication authentication) {
+    public String generateAccessToken(Authentication authentication) {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-
         SecurityUserDetails securityUserDetails = (SecurityUserDetails) userDetails;
-        Long userId = securityUserDetails.getId();
+        return generateAccessToken(securityUserDetails.getId(), securityUserDetails.getPlatformRole());
+    }
 
+    public String generateAccessToken(Long userId) {
+        return generateAccessToken(userId, "USER");
+    }
+
+    public String generateAccessToken(Long userId, String role) {
+        String safeRole = "ADMIN".equalsIgnoreCase(role) ? "ADMIN" : "USER";
         return Jwts.builder()
                 .subject(String.valueOf(userId))
+                .claim("role", safeRole)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                .expiration(new Date(System.currentTimeMillis() + accessExpirationMs))
                 .signWith(jwtSecret)
                 .compact();
     }
 
-    public String extractUsername(String token) {
-        return Jwts.parser()
+    public Long extractUserId(String token) {
+        String subject = Jwts.parser()
                 .verifyWith(jwtSecret)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload()
                 .getSubject();
+        return Long.valueOf(subject);
     }
 
     public boolean isTokenValid(String token) {

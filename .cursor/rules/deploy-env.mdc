@@ -1,0 +1,18 @@
+---
+description: При выкладке на сервер обязательно заполнить .env по образцу и напомнить пользователю
+alwaysApply: true
+---
+
+# Выкладка на сервер — секреты
+
+Пользователь пока работает только на своём ПК (`localhost`). Файл `.env.example` — шпаргалка, **сейчас его не заполняют**.
+
+Когда речь зайдёт о аренде сервера, Docker «поднять район», домене, HTTPS или «залить в прод»:
+
+1. Напомнить: скопировать `G:\SocialFriend\.env.example` → `.env` **на сервере** (не в git).
+2. Заполнить: пароль Postgres, `JWT_SECRET` (один на security и gateway, ≥64 символов), `INTERNAL_API_KEY`, `DADATA_API_KEY`, `GRAFANA_ADMIN_PASSWORD` (не оставлять admin).
+3. Фронт: `C:\Users\Магамед\Desktop\MyRaion\.env.example` → `.env` с `VITE_API_URL` (боевой адрес API, не localhost).
+4. CORS: `APP_CORS_ORIGINS` = адрес сайта.
+5. Actuator на отдельных портах (18080…), не проксировать их наружу через Nginx — только API 80/443.
+6. Не публиковать в интернет порты 9090 (Prometheus) и 3000 (Grafana) на 0.0.0.0; либо пароль Grafana + VPN.
+7. Не коммитить `.env`. Локальные yaml-дефолты (`localhost`, `postgres`/`password`) не трогать.

@@ -4,3 +4,49 @@ server:
 spring:
   application:
     name: gateway
+  codec:
+    max-in-memory-size: 32MB
+  cloud:
+    gateway:
+      httpclient:
+        connect-timeout: 10000
+        response-timeout: 15s
+
+app:
+  jwt:
+    # Должен совпадать с security. На сервере: JWT_SECRET.
+    secret: ${JWT_SECRET:your-very-strong-secret-key-32-characters-long}
+  dadata:
+    api-key: ${DADATA_API_KEY:954b79dfc669d151e9845c6e9220d62407b46814}
+  cors:
+    allowed-origins: ${APP_CORS_ORIGINS:http://localhost,http://127.0.0.1,http://localhost:80,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://192.168.0.162:5173}
+  internal:
+    api-key: ${INTERNAL_API_KEY:local-internal-api-key-change-in-prod}
+  services:
+    user: ${APP_USER_URL:http://localhost:8081}
+    friend: ${APP_FRIEND_URL:http://localhost:8082}
+    post: ${APP_POST_URL:http://localhost:8083}
+    comment: ${APP_COMMENT_URL:http://localhost:8084}
+    like: ${APP_LIKE_URL:http://localhost:8085}
+    notification: ${APP_NOTIFICATION_URL:http://localhost:8086}
+    notification-ws: ${APP_NOTIFICATION_WS_URL:ws://localhost:8086}
+    chat: ${APP_CHAT_URL:http://localhost:8087}
+    chat-ws: ${APP_CHAT_WS_URL:ws://localhost:8087}
+    event: ${APP_EVENT_URL:http://localhost:8088}
+    security: ${APP_SECURITY_URL:http://localhost:8888}
+
+management:
+  server:
+    port: 18080
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: never
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}

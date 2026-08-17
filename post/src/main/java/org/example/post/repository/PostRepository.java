@@ -13,14 +13,14 @@ import java.util.List;
 
 @Repository
 public interface PostRepository extends JpaRepository<PostEntity, Long>, JpaSpecificationExecutor<PostEntity> {
-    List<PostEntity> findAllByAuthorId(Long authorId);
 
-    @Query("""
-        SELECT pe
-        FROM PostEntity pe
-        WHERE pe.statusPost = :statusPost
-""")
-    Page<PostEntity> findAllByStatusPost(StatusPost statusPost, Pageable pageable);
+    Page<PostEntity> findAllByAuthorIdAndStatusPost(Long authorId, StatusPost statusPost, Pageable pageable);
 
-    List<PostEntity> findAllByAuthorIdAndStatusPost(Long authorId, StatusPost statusPost);
+    java.util.List<PostEntity> findAllByAuthorIdAndStatusPost(Long authorId, StatusPost statusPost);
+
+    java.util.List<PostEntity> findAllByAuthorIdAndStatusPostAndHiddenReason(
+            Long authorId,
+            StatusPost statusPost,
+            org.example.post.entity.PostHiddenReason hiddenReason
+    );
 }

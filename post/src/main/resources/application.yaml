@@ -6,10 +6,16 @@ spring:
     name: post
   main:
     allow-bean-definition-overriding: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 55MB
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
   datasource:
-    url: jdbc:postgresql://localhost:5432/social_post_db
-    username: postgres
-    password: password
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/social_post_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -19,8 +25,32 @@ spring:
 
   logging:
     level:
-      org.springframework.cloud.gateway: DEBUG
-      reactor.netty.http.client: DEBUG
       org.springframework.web: DEBUG
       org.hibernate.SQL: DEBUG
       org.springframework.orm.jpa: DEBUG
+
+app:
+  upload:
+    dir: ./uploads/posts
+  internal:
+    api-key: ${INTERNAL_API_KEY:local-internal-api-key-change-in-prod}
+  services:
+    user-base-url: ${APP_USER_URL:http://localhost:8081}
+    like-base-url: ${APP_LIKE_URL:http://localhost:8085}
+    comment-base-url: ${APP_COMMENT_URL:http://localhost:8084}
+
+management:
+  server:
+    port: 18083
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: never
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}

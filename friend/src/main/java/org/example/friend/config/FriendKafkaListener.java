@@ -15,14 +15,22 @@ public class FriendKafkaListener {
 
     private final UserReferenceRepository userReferenceRepository;
 
-    @KafkaListener(topics = "user-registered", groupId = "friend-group")
+    @KafkaListener(
+            topics = "user-registered",
+            groupId = "friend-group",
+            containerFactory = "kafkaListenerContainerFactory"
+    )
     public void listenUserRegistration(UserRegisteredEvent event) {
-        log.info("[FriendKafkaListener - INFO] Получено событие регистрации пользователя: {}", event.getId());
+        log.info("[FriendKafkaListener] Регистрация userId={}", event.getId());
+
+        if (userReferenceRepository.existsById(event.getId())) {
+            log.info("[FriendKafkaListener] userId={} уже есть — идемпотентный skip", event.getId());
+            return;
+        }
 
         UserReferenceEntity userRef = new UserReferenceEntity();
         userRef.setId(event.getId());
-
         userReferenceRepository.save(userRef);
-        log.info("[FriendKafkaListener - INFO] ID пользователя {} успешно синхронизирован", event.getId());
+        log.info("[FriendKafkaListener] ID пользователя {} синхронизирован", event.getId());
     }
 }

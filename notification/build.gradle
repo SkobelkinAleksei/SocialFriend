@@ -6,6 +6,7 @@ description = 'notification'
 
 dependencies {
     implementation project(':common')
+    implementation project(':rest-client')
 
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.springframework.boot:spring-boot-starter-web'

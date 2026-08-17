@@ -1,11 +1,15 @@
 package org.example.user.exception;
 
 
+import org.example.user.exception.ForbiddenException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -16,30 +20,72 @@ import java.util.List;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<DefaultErrorMessage> handleValidation(
+            MethodArgumentNotValidException ex, HttpServletRequest request) {
+
+        List<DefaultErrorMessage.FieldError> fieldErrors = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(fe -> new DefaultErrorMessage.FieldError(fe.getField(), fe.getDefaultMessage()))
+                .toList();
+
+        String detail = fieldErrors.isEmpty()
+                ? "Ошибка валидации"
+                : fieldErrors.get(0).message();
+
+        return getResponseEntity(
+                "Validation Failed",
+                detail,
+                HttpStatus.BAD_REQUEST.value(),
+                request.getRequestURI(),
+                fieldErrors,
+                "VALIDATION_ERROR"
+        );
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<DefaultErrorMessage> handleUnreadableMessage(
+            HttpMessageNotReadableException ex, HttpServletRequest request) {
+        log.warn("[ERROR] HttpMessageNotReadableException: {}", ex.getMessage());
+        return getResponseEntity(
+                "Bad Request",
+                "Некорректный формат запроса",
+                HttpStatus.BAD_REQUEST.value(),
+                request.getRequestURI(),
+                null,
+                "MALFORMED_REQUEST"
+        );
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<DefaultErrorMessage> handleDataIntegrity(
+            DataIntegrityViolationException ex, HttpServletRequest request) {
+        log.warn("[ERROR] DataIntegrityViolationException", ex);
+        String path = request.getRequestURI() == null ? "" : request.getRequestURI();
+        boolean reportPath = path.contains("/reports");
+        return getResponseEntity(
+                reportPath ? "Conflict" : "Conflict",
+                reportPath ? "Не удалось сохранить жалобу" : "Email или телефон уже используются!",
+                HttpStatus.CONFLICT.value(),
+                request.getRequestURI(),
+                null,
+                reportPath ? "REPORT_CONFLICT" : "DUPLICATE_USER_DATA"
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<DefaultErrorMessage> handleException(Exception ex, HttpServletRequest request) {
         log.error("[ERROR] Unhandled exception", ex);
 
         return getResponseEntity("Internal Server Error",
-                ex.getMessage(),
+                "Произошла внутренняя ошибка",
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 request.getRequestURI(),
                 null,
                 "INTERNAL_SERVER_ERROR"
         );
     }
-
-//    @ExceptionHandler(AccessDeniedException.class)
-//    public ResponseEntity<DefaultErrorMessage> handleAccessDeniedException(
-//            AccessDeniedException ex, HttpServletRequest request) {
-//        log.error("[ERROR] AccessDeniedException", ex);
-//        return getResponseEntity("Access Denied",
-//                "У вас нет доступа к этому ресурсу.",
-//                HttpStatus.FORBIDDEN.value(),
-//                request.getRequestURI(),
-//                null,
-//                "ACCESS_DENIED");
-//    }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<DefaultErrorMessage> handleIllegalArgumentException(
@@ -80,6 +126,21 @@ public class GlobalExceptionHandler {
                 request.getRequestURI(),
                 null,
                 "ILLEGAL_STATE"
+        );
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<DefaultErrorMessage> handleForbidden(
+            ForbiddenException ex, HttpServletRequest request
+    ) {
+        log.warn("[ERROR] ForbiddenException: {}", ex.getMessage());
+        return getResponseEntity(
+                "Forbidden",
+                ex.getMessage(),
+                HttpStatus.FORBIDDEN.value(),
+                request.getRequestURI(),
+                null,
+                "FORBIDDEN"
         );
     }
 

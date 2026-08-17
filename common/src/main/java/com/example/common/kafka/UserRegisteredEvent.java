@@ -1,6 +1,8 @@
 package com.example.common.kafka;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,9 +16,21 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class UserRegisteredEvent {
     private Long id;
-    private String username;
+
+    /** Login identifier (email). JSON alias keeps old "username" payloads working. */
+    @JsonProperty("email")
+    @JsonAlias("username")
+    private String email;
+
     private String passwordHash;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
+
+    /** USER или ADMIN. Старые события без поля security читает как USER. */
+    private String platformRole;
+
+    public UserRegisteredEvent(Long id, String email, String passwordHash, LocalDateTime createdAt) {
+        this(id, email, passwordHash, createdAt, "USER");
+    }
 }

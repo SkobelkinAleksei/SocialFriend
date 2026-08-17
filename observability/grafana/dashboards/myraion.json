@@ -1,0 +1,318 @@
+{
+  "uid": "myraion-overview",
+  "title": "На районе — обзор",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 2,
+  "refresh": "10s",
+  "tags": ["myraion"],
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Вход и регистрация — крупные цифры: сколько раз с запуска сервиса",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Успешные входы",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "fieldConfig": { "defaults": { "decimals": 0, "unit": "none" } },
+      "targets": [{ "expr": "sum(myraion_vhod_uspeh_total)", "legendFormat": "Входы", "refId": "A" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Неудачные входы",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "fieldConfig": { "defaults": { "decimals": 0, "unit": "none" } },
+      "targets": [{ "expr": "sum(myraion_vhod_oshibka_total)", "legendFormat": "Ошибки входа", "refId": "A" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Блокировки аккаунта",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "fieldConfig": { "defaults": { "decimals": 0, "unit": "none" } },
+      "targets": [{ "expr": "sum(myraion_vhod_blokirovka_total)", "legendFormat": "Блокировки", "refId": "A" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Новые регистрации",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "fieldConfig": { "defaults": { "decimals": 0, "unit": "none" } },
+      "targets": [{ "expr": "sum(myraion_registraciya_uspeh_total)", "legendFormat": "Регистрации", "refId": "A" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Когда это случилось (столбик ≈ 1 событие)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 5 },
+      "fieldConfig": { "defaults": { "decimals": 0, "unit": "none", "custom": { "drawStyle": "bars", "fillOpacity": 40, "barAlignment": 0 } } },
+      "targets": [
+        { "expr": "sum(increase(myraion_vhod_uspeh_total[2m]))", "legendFormat": "Успешный вход", "refId": "A" },
+        { "expr": "sum(increase(myraion_vhod_oshibka_total[2m]))", "legendFormat": "Неудачный вход", "refId": "B" },
+        { "expr": "sum(increase(myraion_registraciya_uspeh_total[2m]))", "legendFormat": "Регистрация", "refId": "C" },
+        { "expr": "sum(increase(myraion_registraciya_oshibka_total[2m]))", "legendFormat": "Ошибка регистрации", "refId": "D" }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "row",
+      "title": "Чаты",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 }
+    },
+    {
+      "id": 20,
+      "type": "stat",
+      "title": "Личные сообщения",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 14 },
+      "fieldConfig": { "defaults": { "decimals": 0 } },
+      "targets": [{ "expr": "sum(myraion_chat_soobshenie_lichnoe_total)", "legendFormat": "Личные", "refId": "A" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 21,
+      "type": "stat",
+      "title": "Групповые сообщения",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 14 },
+      "fieldConfig": { "defaults": { "decimals": 0 } },
+      "targets": [{ "expr": "sum(myraion_chat_soobshenie_gruppa_total)", "legendFormat": "Групповые", "refId": "A" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 22,
+      "type": "stat",
+      "title": "Не отправились",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 14 },
+      "fieldConfig": { "defaults": { "decimals": 0 } },
+      "targets": [{ "expr": "sum(myraion_chat_soobshenie_oshibka_total)", "legendFormat": "Ошибки", "refId": "A" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 23,
+      "type": "stat",
+      "title": "История открыта",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 14 },
+      "fieldConfig": { "defaults": { "decimals": 0 } },
+      "targets": [{ "expr": "sum(myraion_chat_istoriya_uspeh_total)", "legendFormat": "История", "refId": "A" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Сообщения по времени",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 18 },
+      "fieldConfig": { "defaults": { "decimals": 0, "custom": { "drawStyle": "bars", "fillOpacity": 40 } } },
+      "targets": [
+        { "expr": "sum(increase(myraion_chat_soobshenie_lichnoe_total[2m]))", "legendFormat": "Личные", "refId": "A" },
+        { "expr": "sum(increase(myraion_chat_soobshenie_gruppa_total[2m]))", "legendFormat": "Групповые", "refId": "B" },
+        { "expr": "sum(increase(myraion_chat_soobshenie_oshibka_total[2m]))", "legendFormat": "Не отправились", "refId": "C" }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Подключения и история по времени",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 18 },
+      "fieldConfig": { "defaults": { "decimals": 0, "custom": { "drawStyle": "bars", "fillOpacity": 40 } } },
+      "targets": [
+        { "expr": "sum(increase(myraion_chat_ws_podklyuchenie_total[2m]))", "legendFormat": "Подключились", "refId": "A" },
+        { "expr": "sum(increase(myraion_chat_ws_otklyuchenie_total[2m]))", "legendFormat": "Отключились", "refId": "B" },
+        { "expr": "sum(increase(myraion_chat_istoriya_uspeh_total[2m]))", "legendFormat": "История загружена", "refId": "C" },
+        { "expr": "sum(increase(myraion_chat_istoriya_oshibka_total[2m]))", "legendFormat": "Ошибка истории", "refId": "D" }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "row",
+      "title": "Встречи",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 26 }
+    },
+    {
+      "id": 24,
+      "type": "stat",
+      "title": "Встречи созданы",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 27 },
+      "fieldConfig": { "defaults": { "decimals": 0 } },
+      "targets": [{ "expr": "sum(myraion_vstrecha_sozdana_total)", "legendFormat": "Созданы", "refId": "A" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 25,
+      "type": "stat",
+      "title": "Заявки на приватные встречи",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 27 },
+      "fieldConfig": { "defaults": { "decimals": 0 } },
+      "targets": [{ "expr": "sum(myraion_vstrecha_zayavka_total)", "legendFormat": "Заявки", "refId": "A" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 26,
+      "type": "stat",
+      "title": "Вступления (открытые + одобрения)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 27 },
+      "fieldConfig": { "defaults": { "decimals": 0 } },
+      "targets": [{ "expr": "sum(myraion_vstrecha_vstuplenie_total)", "legendFormat": "Вступления", "refId": "A" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "Ошибки загрузки карты",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 27 },
+      "fieldConfig": { "defaults": { "decimals": 0 } },
+      "targets": [{ "expr": "sum(myraion_vstrecha_spisok_oshibka_total)", "legendFormat": "Ошибки карты", "refId": "A" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Встречи по времени",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 31 },
+      "fieldConfig": { "defaults": { "decimals": 0, "custom": { "drawStyle": "bars", "fillOpacity": 40 } } },
+      "targets": [
+        { "expr": "sum(increase(myraion_vstrecha_sozdana_total[2m]))", "legendFormat": "Созданы", "refId": "A" },
+        { "expr": "sum(increase(myraion_vstrecha_zayavka_total[2m]))", "legendFormat": "Заявки", "refId": "B" },
+        { "expr": "sum(increase(myraion_vstrecha_vstuplenie_total[2m]))", "legendFormat": "Вступления", "refId": "C" }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "row",
+      "title": "Уведомления и надёжность",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 39 }
+    },
+    {
+      "id": 27,
+      "type": "stat",
+      "title": "Уведомления записаны",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 40 },
+      "fieldConfig": { "defaults": { "decimals": 0 } },
+      "targets": [{ "expr": "sum(myraion_uvedomlenie_sohraneno_total)", "legendFormat": "Записано", "refId": "A" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 28,
+      "type": "stat",
+      "title": "Уведомления ушли в сокет",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 40 },
+      "fieldConfig": { "defaults": { "decimals": 0 } },
+      "targets": [{ "expr": "sum(myraion_uvedomlenie_otpravleno_total)", "legendFormat": "В сокет", "refId": "A" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 29,
+      "type": "stat",
+      "title": "Ошибки уведомлений",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 40 },
+      "fieldConfig": { "defaults": { "decimals": 0 } },
+      "targets": [{ "expr": "sum(myraion_uvedomlenie_oshibka_total)", "legendFormat": "Ошибки", "refId": "A" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 30,
+      "type": "stat",
+      "title": "Outbox ушёл в Kafka",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 40 },
+      "fieldConfig": { "defaults": { "decimals": 0 } },
+      "targets": [{ "expr": "sum(myraion_outbox_otpravleno_total)", "legendFormat": "Kafka", "refId": "A" }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Уведомления по времени",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 44 },
+      "fieldConfig": { "defaults": { "decimals": 0, "custom": { "drawStyle": "bars", "fillOpacity": 40 } } },
+      "targets": [
+        { "expr": "sum(increase(myraion_uvedomlenie_sohraneno_total[2m]))", "legendFormat": "Записано", "refId": "A" },
+        { "expr": "sum(increase(myraion_uvedomlenie_otpravleno_total[2m]))", "legendFormat": "Ушло в сокет", "refId": "B" },
+        { "expr": "sum(increase(myraion_uvedomlenie_oshibka_total[2m]))", "legendFormat": "Ошибка отправки", "refId": "C" }
+      ]
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "Outbox и планировщик по времени",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 44 },
+      "fieldConfig": { "defaults": { "decimals": 0, "custom": { "drawStyle": "bars", "fillOpacity": 40 } } },
+      "targets": [
+        { "expr": "sum(increase(myraion_outbox_zapisano_total[2m]))", "legendFormat": "Outbox записан", "refId": "A" },
+        { "expr": "sum(increase(myraion_outbox_otpravleno_total[2m]))", "legendFormat": "Ушло в Kafka", "refId": "B" },
+        { "expr": "sum(increase(myraion_outbox_oshibka_total[2m]))", "legendFormat": "Ошибка outbox", "refId": "C" },
+        { "expr": "sum(increase(myraion_dzhob_uspeh_total[2m]))", "legendFormat": "Задача выполнена", "refId": "D" },
+        { "expr": "sum(increase(myraion_dzhob_oshibka_total[2m]))", "legendFormat": "Задача упала", "refId": "E" }
+      ]
+    },
+    {
+      "id": 16,
+      "type": "row",
+      "title": "Шлюз",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 52 }
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "Ошибки шлюза (штук за 2 минуты)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 53 },
+      "fieldConfig": { "defaults": { "decimals": 0, "custom": { "drawStyle": "bars", "fillOpacity": 40 } } },
+      "targets": [
+        { "expr": "sum by (klass) (increase(myraion_shlyuz_oshibka_total[2m]))", "legendFormat": "{{klass}}", "refId": "A" }
+      ]
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "Медленные запросы и время ответа шлюза",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 53 },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "targets": [
+        { "expr": "sum(increase(myraion_shlyuz_medlennyy_zapros_total[2m]))", "legendFormat": "Дольше 2 сек (штук)", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum(rate(myraion_shlyuz_zapros_seconds_bucket[5m])) by (le))", "legendFormat": "95% запросов уложились, сек", "refId": "B" }
+      ]
+    },
+    {
+      "id": 19,
+      "type": "timeseries",
+      "title": "Сервисы на связи (1 = работает)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 61 },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "max": 1 } },
+      "targets": [
+        { "expr": "up", "legendFormat": "{{prilozhenie}}", "refId": "A" }
+      ]
+    }
+  ]
+}

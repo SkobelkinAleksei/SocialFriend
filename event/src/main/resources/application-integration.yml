@@ -1,0 +1,8 @@
+app:
+  integration:
+    user-service:
+      base-url: ${APP_USER_URL:http://localhost:8081}/api/v1/social/users/
+    chat-service:
+      base-url: ${APP_CHAT_URL:http://localhost:8087}/api/v1/internal/chats/
+    scheduler-service:
+      base-url: ${APP_SCHEDULER_URL:http://localhost:8090}/api/v1/internal/scheduler/

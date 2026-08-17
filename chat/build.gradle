@@ -1,0 +1,27 @@
+plugins {
+    id 'org.springframework.boot'
+}
+
+description = 'chat'
+
+dependencies {
+    implementation project(':common')
+    implementation project(':rest-client')
+
+    // Spring Boot Стартеры
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    // База данных и инструменты (на примере PostgreSQL)
+    runtimeOnly 'org.postgresql:postgresql'
+
+    implementation 'org.springframework.kafka:spring-kafka:3.3.9'
+    // Дополнительные утилиты
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+}
+

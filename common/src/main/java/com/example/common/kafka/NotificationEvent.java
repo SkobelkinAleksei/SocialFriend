@@ -14,5 +14,13 @@ public class NotificationEvent {
     private Long senderId;
     private NotificationType type;
     private Long targetId;
+    private Long commentId;
     private String message;
+    private String senderFirstName;
+    private String senderLastName;
+    /** Для чатов: "PERSONAL" или "GROUP:Название встречи" */
+    private String contextLabel;
+    private Long replyToUserId;
+    private String replyToAuthorName;
+    private String authorAvatarUrl;
 }

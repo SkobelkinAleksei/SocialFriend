@@ -11,4 +11,6 @@ include 'notification'
 include 'rest-client'
 include 'common'
 include 'chat'
+include 'event'
+include 'scheduler'
 

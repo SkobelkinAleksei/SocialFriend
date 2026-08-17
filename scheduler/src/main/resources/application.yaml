@@ -1,0 +1,53 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: scheduler
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/social_scheduler_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+app:
+  scheduler:
+    poll-ms: 5000
+    batch-size: 20
+    max-attempts: 8
+    stuck-running-minutes: 5
+  services:
+    event-base-url: ${APP_EVENT_URL:http://localhost:8088}
+    chat-base-url: ${APP_CHAT_URL:http://localhost:8087}
+    security-base-url: ${APP_SECURITY_URL:http://localhost:8888}
+  internal:
+    api-key: ${INTERNAL_API_KEY:local-internal-api-key-change-in-prod}
+  lifecycle:
+    remind-minutes-before: 60
+    reputation-open-minutes: 180
+    reputation-close-minutes: 10080
+    keep-poll-minutes-after-start: 1440
+    keep-resolve-minutes-after-poll: 1440
+    cancel-delete-minutes: 720
+    keep-fail-delete-minutes: 5
+
+management:
+  server:
+    port: 18090
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: never
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
