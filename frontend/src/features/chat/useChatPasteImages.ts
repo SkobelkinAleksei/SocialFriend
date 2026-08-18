@@ -37,13 +37,6 @@ export function useChatPasteImages(
   useEffect(() => {
     if (!enabled) return;
 
-    const unlock = (event: KeyboardEvent) => {
-      const key = event.key;
-      if (key === 'v' || key === 'V' || key === 'Control' || key === 'Meta') {
-        holdLockRef.current = false;
-      }
-    };
-
     const onPaste = (event: ClipboardEvent) => {
       const target = event.target as HTMLElement | null;
       if (target?.closest?.('input:not([data-chat-composer]), textarea:not([data-chat-composer]), [contenteditable="true"]')) {
@@ -54,17 +47,12 @@ export function useChatPasteImages(
       event.preventDefault();
       if (holdLockRef.current) return;
       holdLockRef.current = true;
-      void addRef.current(files);
+      void Promise.resolve(addRef.current(files, { silent: true })).finally(() => {
+        window.setTimeout(() => { holdLockRef.current = false; }, 400);
+      });
     };
 
     window.addEventListener('paste', onPaste);
-    window.addEventListener('keyup', unlock);
-    const onBlur = () => { holdLockRef.current = false; };
-    window.addEventListener('blur', onBlur);
-    return () => {
-      window.removeEventListener('paste', onPaste);
-      window.removeEventListener('keyup', unlock);
-      window.removeEventListener('blur', onBlur);
-    };
+    return () => window.removeEventListener('paste', onPaste);
   }, [enabled]);
 }

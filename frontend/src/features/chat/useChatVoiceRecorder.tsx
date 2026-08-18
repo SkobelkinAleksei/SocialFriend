@@ -319,9 +319,19 @@ export function useChatVoiceRecorder(onRecorded: (blob: Blob, durationSec: numbe
   }, [mode, cancel]);
 
   useEffect(() => () => {
-    recorderRef.current?.stop();
+    try { recorderRef.current?.stop(); } catch { /* already stopped */ }
     cleanupStream();
+    const audio = previewAudioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+      releaseChatAudio(audio);
+    }
+    previewAudioRef.current = null;
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    previewUrlRef.current = '';
+    blobRef.current = null;
   }, []);
 
   return {

@@ -1,7 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useSyncExternalStore } from 'react';
 import { Pause, Play } from 'lucide-react';
 import { resolveChatMediaUrl } from '@/features/chat/chatPhotos';
-import { claimChatAudio, formatVoiceSpeed, nextVoiceSpeed, releaseChatAudio } from '@/features/chat/chatVoiceAudio';
+import { formatVoiceSpeed } from '@/features/chat/chatVoiceAudio';
+import {
+  cycleVoiceSpeed,
+  getVoicePlayerState,
+  playVoiceQueue,
+  seekVoicePlayer,
+  subscribeVoicePlayer,
+  toggleVoicePlayer,
+  type VoiceTrack,
+} from '@/features/chat/chatVoicePlayer';
 
 export function formatVoiceTime(totalSec?: number | null): string {
   const sec = Math.max(0, Math.floor(Number(totalSec) || 0));
@@ -24,84 +33,57 @@ export default function ChatVoiceBubble({
   duration,
   mine,
   compact,
+  trackId,
+  queue,
+  title,
 }: {
   url?: string | null;
   duration?: number | null;
   mine?: boolean;
   compact?: boolean;
+  trackId?: string;
+  queue?: VoiceTrack[];
+  title?: string;
 }) {
   const resolved = resolveChatMediaUrl(url);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [playing, setPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [current, setCurrent] = useState(0);
-  const [speed, setSpeed] = useState(1);
+  const id = String(trackId || url || '');
+  const player = useSyncExternalStore(subscribeVoicePlayer, getVoicePlayerState, getVoicePlayerState);
+  const active = player.track?.id === id;
+  const playing = active && player.playing;
+  const progress = active ? player.progress : 0;
+  const current = active ? player.currentTime : 0;
+  const speed = player.speed;
   const bars = compact ? 16 : 22;
   const peaks = barsFromUrl(resolved || 'voice', bars);
 
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const onTime = () => {
-      const total = audio.duration || duration || 1;
-      setCurrent(audio.currentTime);
-      setProgress(total ? audio.currentTime / total : 0);
-    };
-    const onEnded = () => {
-      setPlaying(false);
-      setProgress(0);
-      setCurrent(0);
-      releaseChatAudio(audio);
-    };
-    const onExternalPause = () => setPlaying(false);
-    audio.addEventListener('timeupdate', onTime);
-    audio.addEventListener('ended', onEnded);
-    audio.addEventListener('myraion-voice-pause', onExternalPause);
-    return () => {
-      audio.removeEventListener('timeupdate', onTime);
-      audio.removeEventListener('ended', onEnded);
-      audio.removeEventListener('myraion-voice-pause', onExternalPause);
-    };
-  }, [duration]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (audio) audio.playbackRate = speed;
-  }, [speed]);
-
-  if (!resolved) return null;
+  if (!resolved || !id) return null;
 
   const toggle = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (playing) {
-      audio.pause();
-      setPlaying(false);
-      releaseChatAudio(audio);
-    } else {
-      claimChatAudio(audio);
-      void audio.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+    if (active) {
+      toggleVoicePlayer();
+      return;
     }
+    const own: VoiceTrack = { id, url: resolved, duration, title: title || 'Голосовое' };
+    const list = queue && queue.length ? queue : [own];
+    playVoiceQueue(list, id);
   };
 
   const seek = (e: React.PointerEvent<HTMLDivElement>) => {
     e.stopPropagation();
-    const audio = audioRef.current;
-    if (!audio) return;
+    if (!active) {
+      const own: VoiceTrack = { id, url: resolved, duration, title: title || 'Голосовое' };
+      playVoiceQueue(queue && queue.length ? queue : [own], id);
+    }
     const rect = e.currentTarget.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const total = audio.duration || duration || 1;
-    audio.currentTime = ratio * total;
-    setProgress(ratio);
-    setCurrent(ratio * total);
+    seekVoicePlayer(ratio);
   };
 
   const time = formatVoiceTime(playing || current > 0 ? current : duration);
 
   return (
     <div className={`flex items-center gap-2 min-w-0 ${compact ? 'flex-1' : 'min-w-[220px] max-w-[280px] mb-1.5'} ${mine ? 'text-white' : 'text-[#1A1916]'}`}>
-      <audio ref={audioRef} src={resolved} preload="metadata" />
       <button
         type="button"
         onClick={toggle}
@@ -137,7 +119,7 @@ export default function ChatVoiceBubble({
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            setSpeed((prev) => nextVoiceSpeed(prev));
+            cycleVoiceSpeed();
           }}
           className={`text-[10px] font-bold tabular-nums shrink-0 px-1.5 py-0.5 rounded-full ${mine ? 'bg-white/20 text-white' : 'bg-[#5C4B7A]/10 text-[#5C4B7A]'}`}
           title="Скорость"

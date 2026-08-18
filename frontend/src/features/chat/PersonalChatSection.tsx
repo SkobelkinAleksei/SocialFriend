@@ -29,6 +29,7 @@ import SharedEventCard from '@/features/events/SharedEventCard';
 import ChatMaterialsGallery from '@/features/chat/ChatMaterialsGallery';
 import ChatVoiceBubble from '@/features/chat/ChatVoiceBubble';
 import ChatFileBubble from '@/features/chat/ChatFileBubble';
+import { voiceQueueFromMessages } from '@/features/chat/chatVoicePlayer';
 import { useChatMediaAttach } from '@/features/chat/useChatMediaAttach';
 import { useChatPasteImages } from '@/features/chat/useChatPasteImages';
 import { ChatPendingStrip, ChatPaperclipButton } from '@/features/chat/ChatComposerExtras';
@@ -140,6 +141,7 @@ export default function PersonalChatSection({
     const actions = useChatActions({
         refreshRooms: undefined
     });
+    const voiceQueue = voiceQueueFromMessages(actions.messages);
     useChatPasteImages(chatMedia.addPhotos, !actions.editingId && voice.mode === 'idle');
     messagesRef.current = actions.messages;
     historyHasMoreRef.current = historyHasMore;
@@ -1007,7 +1009,14 @@ export default function PersonalChatSection({
                                         }
                                         return (
                                             <>
-                                                <ChatVoiceBubble url={m.voiceUrl} duration={m.voiceDuration} mine={isMe} />
+                                                <ChatVoiceBubble
+                                                    url={m.voiceUrl}
+                                                    duration={m.voiceDuration}
+                                                    mine={isMe}
+                                                    trackId={String(m.id)}
+                                                    queue={voiceQueue}
+                                                    title={isMe ? 'Вы' : `${m.senderFirstName || ''} ${m.senderLastName || ''}`.trim()}
+                                                />
                                                 <ChatPhotoGrid
                                                     photos={m.photos}
                                                     addedAt={m.timestamp}

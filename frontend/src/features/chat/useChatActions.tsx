@@ -572,7 +572,16 @@ export function useChatActions({ refreshRooms }: UseChatActionsProps) {
         resetSelectionMode();
         deleteInFlightRef.current = true;
         try {
-            await api.delete('/api/v1/social/chats/message/batch', { data: idsToNumbers });
+            try {
+                await api.post('/api/v1/social/chats/message/batch', idsToNumbers);
+            } catch {
+                const results = await Promise.allSettled(
+                    idsToNumbers.map((id) => api.delete(`/api/v1/social/chats/message/${id}`))
+                );
+                if (results.every((item) => item.status === 'rejected')) {
+                    throw (results[0] as PromiseRejectedResult).reason;
+                }
+            }
             if (refreshRooms) { refreshRooms(); }
         } catch (err) {
             console.error("Ошибка пакетного удаления сообщений:", err);

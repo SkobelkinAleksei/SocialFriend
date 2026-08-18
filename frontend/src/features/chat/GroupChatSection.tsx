@@ -45,6 +45,7 @@ import SharedEventCard from '@/features/events/SharedEventCard';
 import ChatMaterialsGallery from '@/features/chat/ChatMaterialsGallery';
 import ChatVoiceBubble from '@/features/chat/ChatVoiceBubble';
 import ChatFileBubble from '@/features/chat/ChatFileBubble';
+import { voiceQueueFromMessages } from '@/features/chat/chatVoicePlayer';
 import { useChatMediaAttach } from '@/features/chat/useChatMediaAttach';
 import { useChatPasteImages } from '@/features/chat/useChatPasteImages';
 import { ChatPendingStrip, ChatPaperclipButton } from '@/features/chat/ChatComposerExtras';
@@ -858,6 +859,7 @@ export default function GroupChatSection({
         };
     }, [stompClient, stompClient?.connected, activeRoom.id, lastLocalReplies]);
     const { chats } = useChat();
+    const voiceQueue = voiceQueueFromMessages(actions.messages);
 
     const handleForwardSubmit = (targets: { recipientId?: number; chatId?: number }[], comment?: string) => {
         const messagesToBuffer = actions.isSelectionMode && actions.selectedParentIds.length > 0
@@ -1861,7 +1863,14 @@ export default function GroupChatSection({
 
                                         return (
                                             <>
-                                                <ChatVoiceBubble url={media.voiceUrl} duration={media.voiceDuration} mine={isMe} />
+                                                <ChatVoiceBubble
+                                                    url={media.voiceUrl}
+                                                    duration={media.voiceDuration}
+                                                    mine={isMe}
+                                                    trackId={String(m.id)}
+                                                    queue={voiceQueue}
+                                                    title={isMe ? 'Вы' : `${m.senderFirstName || ''} ${m.senderLastName || ''}`.trim()}
+                                                />
                                                 <ChatPhotoGrid
                                                     photos={media.photos}
                                                     addedAt={m.timestamp}

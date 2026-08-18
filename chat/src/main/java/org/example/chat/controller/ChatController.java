@@ -222,6 +222,7 @@ public class ChatController {
     }
 
     @DeleteMapping("/api/v1/social/chats/message/batch")
+    @PostMapping("/api/v1/social/chats/message/batch")
     @ResponseBody
     public void deleteMessagesBatch(
             @RequestBody List<Long> messageIds,
@@ -594,8 +595,18 @@ public class ChatController {
 
     private void broadcastDeleted(Long messageId) {
         try {
-            ChatMessageDto dto = messageService.convertToDto(messageId);
-            dto.setDeleted(true);
+            ChatMessage msg = messageService.findById(messageId);
+            ChatMessageDto dto = ChatMessageDto.builder()
+                    .id(msg.getId())
+                    .senderId(msg.getSenderId())
+                    .recipientId(msg.getRecipientId())
+                    .senderFirstName(msg.getSenderFirstName())
+                    .senderLastName(msg.getSenderLastName())
+                    .chatId(msg.getChatId())
+                    .content(msg.getContent())
+                    .deleted(true)
+                    .timestamp(msg.getTimestamp())
+                    .build();
             broadcastDto(dto);
         } catch (Exception ex) {
             log.warn("[Чат] Не удалось разослать удаление сообщения {}: {}", messageId, ex.getMessage());

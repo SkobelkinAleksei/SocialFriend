@@ -37,25 +37,26 @@ export function useChatMediaAttach(maxPhotos = 10, maxFiles = 5) {
   const openPhotoPicker = () => photoInputRef.current?.click();
   const openFilePicker = () => fileInputRef.current?.click();
 
-  const addPhotos = useCallback(async (fileList: FileList | File[] | null) => {
+  const addPhotos = useCallback(async (fileList: FileList | File[] | null, opts?: { silent?: boolean }) => {
     if (!fileList || fileList.length === 0) return;
+    const silent = opts?.silent === true;
     const files = Array.from(fileList);
     const remaining = maxPhotos - photosRef.current.length;
     if (remaining <= 0) {
-      showAppInfoToast('Фото', `Можно прикрепить не больше ${maxPhotos} фото`);
+      if (!silent) showAppInfoToast('Фото', `Можно прикрепить не больше ${maxPhotos} фото`);
       return;
     }
-    if (files.length > remaining) {
+    if (files.length > remaining && !silent) {
       showAppInfoToast('Фото', `Можно прикрепить не больше ${maxPhotos} фото`);
     }
     const slice = files.slice(0, remaining);
     for (const file of slice) {
       if (!file.type.startsWith('image/') && file.type !== '') {
-        showAppInfoToast('Фото', 'Можно выбрать только изображение');
+        if (!silent) showAppInfoToast('Фото', 'Можно выбрать только изображение');
         continue;
       }
       if (file.size > 5 * 1024 * 1024) {
-        showAppInfoToast('Фото', 'Файл больше 5 МБ');
+        if (!silent) showAppInfoToast('Фото', 'Файл больше 5 МБ');
         continue;
       }
       const localId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -68,7 +69,7 @@ export function useChatMediaAttach(maxPhotos = 10, maxFiles = 5) {
           item.localId === localId ? { ...item, url: resolved, uploading: false } : item
         )));
       } catch {
-        showAppInfoToast('Фото', 'Не удалось загрузить фото');
+        if (!silent) showAppInfoToast('Фото', 'Не удалось загрузить фото');
         setPendingPhotos((prev) => prev.filter((item) => item.localId !== localId));
         URL.revokeObjectURL(preview);
       }
