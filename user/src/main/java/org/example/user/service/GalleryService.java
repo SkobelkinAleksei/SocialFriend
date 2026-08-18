@@ -545,7 +545,7 @@ public class GalleryService {
 
     private int nextFrontSortOrder(Long ownerId) {
         return albumRepository.findByOwnerIdOrderBySortOrderAscCreatedAtDesc(ownerId).stream()
-                .mapToInt(PhotoAlbumEntity::getSortOrder)
+                .mapToInt(PhotoAlbumEntity::sortValue)
                 .min()
                 .orElse(0) - 1;
     }
@@ -557,6 +557,7 @@ public class GalleryService {
                         .title("Сохранённые")
                         .kind(PhotoAlbumKind.SAVED)
                         .coverMode(AlbumCoverMode.LATEST)
+                        .sortOrder(0)
                         .build()));
     }
 
@@ -595,7 +596,7 @@ public class GalleryService {
                 .coverMode(album.getCoverMode().name())
                 .coverUrl(coverUrl)
                 .photoCount(count)
-                .sortOrder(album.getSortOrder())
+                .sortOrder(album.sortValue())
                 .build();
     }
 

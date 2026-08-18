@@ -37,11 +37,23 @@ public class PhotoAlbumEntity {
     @Column(name = "cover_photo_id")
     private Long coverPhotoId;
 
+    /** Null у старых строк допустим: читаем как 0, пока колонка не заполнится. */
     @Builder.Default
-    @Column(name = "sort_order", nullable = false)
-    private int sortOrder = 0;
+    @Column(name = "sort_order")
+    private Integer sortOrder = 0;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, columnDefinition = "TIMESTAMP(0)")
     private LocalDateTime createdAt;
+
+    @PrePersist
+    void fillSortOrder() {
+        if (sortOrder == null) {
+            sortOrder = 0;
+        }
+    }
+
+    public int sortValue() {
+        return sortOrder == null ? 0 : sortOrder;
+    }
 }
