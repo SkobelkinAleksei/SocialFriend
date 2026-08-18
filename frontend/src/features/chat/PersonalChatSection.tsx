@@ -18,7 +18,7 @@ import {
     X,
     CornerUpLeft,
     Trash2,
-    ArrowDown, FolderOpen, Pin, BellOff, Bell, ChevronLeft
+    FolderOpen, Pin, BellOff, Bell, ChevronLeft
 } from 'lucide-react';
 import { useChatActions, Msg, ReplyRef } from '@/features/chat/useChatActions';
 import ForwardModal from "@/features/chat/ForwardModal";
@@ -39,6 +39,7 @@ import ChatPinnedBar from '@/features/chat/ChatPinnedBar';
 import ChatMessageText from '@/features/chat/ChatMessageText';
 import ChatComposerInput from '@/features/chat/ChatComposerInput';
 import ChatUnreadDivider, { insertUnreadDivider, isUnreadMarker } from '@/features/chat/ChatUnreadDivider';
+import { ChatScrollDownButton, oldestNumericId, realMessageCount } from '@/features/chat/chatScroll';
 import { showAppInfoToast } from '@/shared/utils/appToast';
 import { useReport } from '@/features/report/ReportModal';
 import { mentionQuery, insertMention } from '@/features/chat/chatMentions';
@@ -222,14 +223,30 @@ export default function PersonalChatSection({
                 historyHasMoreRef.current = rawMessages.length >= HISTORY_PAGE_SIZE;
                 setHistoryHasMore(rawMessages.length >= HISTORY_PAGE_SIZE);
                 const filtered = rawMessages.filter((m: any) => m.content !== '[CHAT_CREATED]');
-
-                const tempMapped = filtered.map(mapRaw);
-
-                const sortedMessages = tempMapped.sort((a: any, b: any) => Number(a.id) - Number(b.id));
+                let acc = filtered.map(mapRaw).sort((a: any, b: any) => Number(a.id) - Number(b.id));
                 const unreadAtOpen = unreadAtOpenRef.current;
-                const formatted = insertUnreadDivider(sortedMessages, unreadAtOpen);
+                let hasMore = rawMessages.length >= HISTORY_PAGE_SIZE;
+                for (let page = 0; page < 8 && hasMore && unreadAtOpen > realMessageCount(acc); page++) {
+                    const beforeId = oldestNumericId(acc);
+                    if (!beforeId) break;
+                    const olderRes = await api.get(`/api/v1/social/chats/history/${activePersonal.id}`, {
+                        params: { size: HISTORY_PAGE_SIZE, beforeId },
+                    });
+                    const olderRaw = (olderRes.data || []).filter((m: any) => m.content !== '[CHAT_CREATED]');
+                    hasMore = (olderRes.data || []).length >= HISTORY_PAGE_SIZE;
+                    const existing = new Set(acc.map((m: Msg) => m.id));
+                    const older = olderRaw.map(mapRaw).filter((m: Msg) => !existing.has(m.id));
+                    if (!older.length) {
+                        hasMore = false;
+                        break;
+                    }
+                    acc = [...older, ...acc].sort((a: any, b: any) => Number(a.id) - Number(b.id));
+                }
+                historyHasMoreRef.current = hasMore;
+                setHistoryHasMore(hasMore);
+                const formatted = insertUnreadDivider(acc, unreadAtOpen);
 
-                actions.setMessages(formatted.length > 0 ? formatted : tempMapped);
+                actions.setMessages(formatted.length > 0 ? formatted : acc);
 
                 if (pageActiveRef.current && document.visibilityState === 'visible') {
                 api.put(`/api/v1/social/chats/read/${activePersonal.id}`)
@@ -254,14 +271,7 @@ export default function PersonalChatSection({
                     .catch((err) => console.error("Ошибка сброса счетчика личного чата:", err));
                 }
 
-                setTimeout(() => {
-                    const unreadElement = document.getElementById('telegram-unread-line-marker');
-                    if (unreadElement) {
-                        unreadElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    } else if (actions.messagesContainerRef.current) {
-                        actions.messagesContainerRef.current.scrollTop = actions.messagesContainerRef.current.scrollHeight;
-                    }
-                }, 150);
+                actions.scrollOpenThread();
             } catch (err) {
                 console.error("Ошибка загрузки истории личного чата:", err);
                 actions.setMessages([]);
@@ -807,6 +817,7 @@ export default function PersonalChatSection({
             />
 
             {/* ОКНО СООБЩЕНИЙ */}
+            <div className="relative flex-1 min-h-0">
             <div
                 ref={actions.messagesContainerRef}
                 onScroll={() => {
@@ -814,7 +825,7 @@ export default function PersonalChatSection({
                     const el = actions.messagesContainerRef.current;
                     if (el && el.scrollTop < 80) void loadOlderPersonalHistory();
                 }}
-                className="flex-1 overflow-y-auto p-6 space-y-3 relative"
+                className="absolute inset-0 overflow-y-auto p-4 md:p-6 space-y-3"
             >
                 {historyLoadingMore ? <div className="text-center text-[11px] text-slate-400 py-1">Загрузка сообщений…</div> : null}
                 {!historyLoadingMore && historyHasMore && actions.messages.length > 0 ? (
@@ -1037,6 +1048,8 @@ export default function PersonalChatSection({
                     );
                 })}
             </div>
+            <ChatScrollDownButton show={actions.showScrollDown} onClick={actions.scrollToBottom} />
+            </div>
             {/* ПАНЕЛЬ ОТВЕТА / МНОЖЕСТВЕННОГО ВЫБОРА */}
             {(actions.selectedParentIds.length > 0 || actions.replyTo.length > 0) && !actions.editingId && (
                 <div className={`px-4 py-2 border-t ${theme.surface.border} bg-white flex items-center gap-2 shrink-0 animate-slideUp w-full`}>
@@ -1152,6 +1165,8 @@ export default function PersonalChatSection({
                                 if (next.trim() && !actions.editingId) sendTyping();
                             }}
                             onSend={send}
+                            onFocus={actions.handleComposerFocus}
+                            onHeightChange={actions.revealLatest}
                             placeholder={actions.editingId ? 'Отредактируйте сообщение…' : 'Напишите сообщение…'}
                         />
                     </div>
@@ -1308,16 +1323,6 @@ export default function PersonalChatSection({
                 );
             })()}
 
-            {/* КНОПКА СПУСКА ВНИЗ */}
-            {actions.showScrollDown && (
-                <button
-                    onClick={actions.scrollToBottom}
-                    className="absolute bottom-20 left-1/2 -translate-x-1/2 w-9 h-9 rounded-full bg-white border border-slate-200/80 shadow-md flex items-center justify-center text-slate-500 hover:text-[#5C4B7A] hover:bg-slate-50 transition-all duration-200 active:scale-90 z-20 animate-fadeIn"
-                    title="Вниз"
-                >
-                    <ArrowDown className="w-4 h-4 stroke-[2.5]" />
-                </button>
-            )}
             <ForwardModal
                 isOpen={isForwardModalOpen}
                 onClose={() => setIsForwardModalOpen(false)}

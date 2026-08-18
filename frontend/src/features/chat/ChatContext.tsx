@@ -367,9 +367,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         } catch (e) { console.error("Ошибка принудительного обновления комнат:", e); }
     };
     useEffect(() => {
-        const totalGroup = [...(eventRooms || []), ...(personalGroups || [])].reduce((sum, r) => sum + ((r && r.unread) || 0), 0);
-        const totalPersonal = (chats || []).reduce((sum, c) => sum + ((c && c.unread) || 0), 0);
-        setChatsCount(totalGroup + totalPersonal);
+        const unreadPersonal = (chats || []).filter((c) => c && (c.unread || 0) > 0).length;
+        const unreadGroups = [...(eventRooms || []), ...(personalGroups || [])]
+            .filter((r) => r && (r.unread || 0) > 0).length;
+        setChatsCount(unreadPersonal + unreadGroups);
     }, [eventRooms, personalGroups, chats]);
 
     useEffect(() => {
@@ -403,10 +404,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
                 setChats(cleanedPersonal);
             } catch (e) { console.error("Ошибка загрузки личных чатов:", e); }
-            try {
-                const totalRes = await api.get('/api/v1/social/chats/unread/total');
-                setChatsCount(Number(totalRes.data) || 0);
-            } catch (e) { console.error("Ошибка общего счетчика чатов:", e); }
         };
         loadData();
     }, [currentUser?.id]);

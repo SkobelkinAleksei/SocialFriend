@@ -20,7 +20,6 @@ import {
     Users,
     Info, ThumbsUp, ThumbsDown,
     Trash2,
-    ArrowDown,
     UserPlus,
     ChevronDown,
     ChevronLeft,
@@ -56,6 +55,7 @@ import ChatPinnedBar from '@/features/chat/ChatPinnedBar';
 import ChatMessageText from '@/features/chat/ChatMessageText';
 import ChatComposerInput from '@/features/chat/ChatComposerInput';
 import ChatUnreadDivider, { insertUnreadDivider, isUnreadMarker } from '@/features/chat/ChatUnreadDivider';
+import { ChatScrollDownButton, oldestNumericId, realMessageCount } from '@/features/chat/chatScroll';
 import { mentionQuery, insertMention } from '@/features/chat/chatMentions';
 import ChatPollCard from '@/features/chat/ChatPollCard';
 import CreatePollModal from '@/features/chat/CreatePollModal';
@@ -445,13 +445,29 @@ export default function GroupChatSection({
                 const response = await api.get(`/api/v1/social/chats/room/${activeRoom.id}/history`, {
                     params: { size: HISTORY_PAGE_SIZE },
                 });
-                const tempMapped = (response.data || []).map(mapRaw);
-                const sortedMessages = tempMapped.sort((a: any, b: any) => Number(a.id) - Number(b.id));
-                historyHasMoreRef.current = (response.data || []).length >= HISTORY_PAGE_SIZE;
-                setHistoryHasMore((response.data || []).length >= HISTORY_PAGE_SIZE);
-                const formatted = insertUnreadDivider(sortedMessages, unreadAtOpen);
+                let acc = (response.data || []).map(mapRaw).sort((a: any, b: any) => Number(a.id) - Number(b.id));
+                let hasMore = (response.data || []).length >= HISTORY_PAGE_SIZE;
+                for (let page = 0; page < 8 && hasMore && unreadAtOpen > realMessageCount(acc); page++) {
+                    const beforeId = oldestNumericId(acc);
+                    if (!beforeId) break;
+                    const olderRes = await api.get(`/api/v1/social/chats/room/${activeRoom.id}/history`, {
+                        params: { size: HISTORY_PAGE_SIZE, beforeId },
+                    });
+                    const olderRaw = olderRes.data || [];
+                    hasMore = olderRaw.length >= HISTORY_PAGE_SIZE;
+                    const existing = new Set(acc.map((m: Msg) => m.id));
+                    const older = olderRaw.map(mapRaw).filter((m: Msg) => !existing.has(m.id));
+                    if (!older.length) {
+                        hasMore = false;
+                        break;
+                    }
+                    acc = [...older, ...acc].sort((a: any, b: any) => Number(a.id) - Number(b.id));
+                }
+                historyHasMoreRef.current = hasMore;
+                setHistoryHasMore(hasMore);
+                const formatted = insertUnreadDivider(acc, unreadAtOpen);
 
-                actions.setMessages(formatted.length > 0 ? formatted : sortedMessages);
+                actions.setMessages(formatted.length > 0 ? formatted : acc);
 
                 if (pageActiveRef.current && document.visibilityState === 'visible') {
                 api.post(`/api/v1/social/chats/room/${activeRoom.id}/read`)
@@ -464,16 +480,7 @@ export default function GroupChatSection({
                     .catch((err) => console.error("Ошибка авто-прочтения при входе:", err));
                 }
 
-                requestAnimationFrame(() => {
-                    setTimeout(() => {
-                        const unreadElement = document.getElementById('telegram-unread-line-marker');
-                        if (unreadElement) {
-                            unreadElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        } else if (actions.messagesContainerRef.current) {
-                            actions.messagesContainerRef.current.scrollTop = actions.messagesContainerRef.current.scrollHeight;
-                        }
-                    }, 180);
-                });
+                actions.scrollOpenThread();
             } catch (err) { console.error("Ошибка загрузки истории группы:", err); }
         };
         fetchHistory();
@@ -1597,6 +1604,7 @@ export default function GroupChatSection({
                 }}
             />
 
+            <div className="relative flex-1 min-h-0">
             <div
                 ref={actions.messagesContainerRef}
                 onScroll={() => {
@@ -1604,7 +1612,7 @@ export default function GroupChatSection({
                     const el = actions.messagesContainerRef.current;
                     if (el && el.scrollTop < 80) void loadOlderGroupHistory();
                 }}
-                className="flex-1 overflow-y-auto p-6 space-y-3 relative"
+                className="absolute inset-0 overflow-y-auto p-4 md:p-6 space-y-3"
             >
                 {historyLoadingMore ? <div className="text-center text-[11px] text-slate-400 py-1">Загрузка сообщений…</div> : null}
                 {!historyLoadingMore && historyHasMore && actions.messages.length > 0 ? (
@@ -1887,6 +1895,8 @@ export default function GroupChatSection({
                     );
                 })}
             </div>
+            <ChatScrollDownButton show={actions.showScrollDown} onClick={actions.scrollToBottom} />
+            </div>
             {(actions.selectedParentIds.length > 0 || actions.replyTo.length > 0) && !actions.editingId && (
                 <div className={`px-4 py-2 border-t ${theme.surface.border} bg-white flex items-center gap-2 shrink-0 animate-slideUp w-full`}>
                     {!actions.isSelectionMode && <CornerUpLeft className={`w-4 h-4 ${theme.accent.text} shrink-0`} />}
@@ -1988,6 +1998,8 @@ export default function GroupChatSection({
                                 if (next.trim() && !actions.editingId) sendTyping();
                             }}
                             onSend={send}
+                            onFocus={actions.handleComposerFocus}
+                            onHeightChange={actions.revealLatest}
                             placeholder={actions.editingId ? 'Отредактируйте сообщение…' : 'Напишите сообщение…'}
                         />
                         </div>
@@ -2208,9 +2220,6 @@ export default function GroupChatSection({
                 );
             })()}
 
-            {actions.showScrollDown && (
-                <button onClick={actions.scrollToBottom} className="absolute bottom-20 left-1/2 -translate-x-1/2 w-9 h-9 rounded-full bg-white border border-slate-200/80 shadow-md flex items-center justify-center text-slate-500 hover:text-[#5C4B7A] hover:bg-slate-50 transition-all duration-200 active:scale-90 z-20 animate-fadeIn" title="Вниз"><ArrowDown className="w-4 h-4 stroke-[2.5]" /></button>
-            )}
             <ForwardModal isOpen={isForwardModalOpen} onClose={() => setIsForwardModalOpen(false)}
                           onSelectChats={handleForwardSubmit} // Изменили с onSelectChat на onSelectChats
             />

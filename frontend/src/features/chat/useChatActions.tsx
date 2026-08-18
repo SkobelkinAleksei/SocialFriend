@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, type MouseEvent, type TouchEvent } from 'react';
 import api from '@/shared/lib/api';
-import { isDesktopViewport } from '@/shared/utils/navigation';
+import { isCompactViewport, isDesktopViewport } from '@/shared/utils/navigation';
 import { isUnreadMarker } from '@/features/chat/chatUnread';
+import { isNearChatBottom, pinChatToBottom, scheduleChatOpenScroll } from '@/features/chat/chatScroll';
 
 export interface ReplyRef {
     id: string;
@@ -77,14 +78,31 @@ export function useChatActions({ refreshRooms }: UseChatActionsProps) {
     const [showScrollDown, setShowScrollDown] = useState<boolean>(false);
     const [forwardBuffer, setForwardBuffer] = useState<Msg[]>([]);
 
-    // Функция плавного спуска вниз
     const scrollToBottom = () => {
-        if (messagesContainerRef.current) {
-            messagesContainerRef.current.scrollTo({
-                top: messagesContainerRef.current.scrollHeight,
-                behavior: 'smooth'
-            });
-        }
+        pinChatToBottom(messagesContainerRef.current, 'smooth');
+    };
+
+    const revealLatest = (force = false) => {
+        const container = messagesContainerRef.current;
+        if (!container) return;
+        if (force || isNearChatBottom(container)) pinChatToBottom(container, 'auto');
+    };
+
+    const handleComposerFocus = () => {
+        if (!isCompactViewport()) return;
+        jumpingToMessageRef.current = true;
+        const run = () => pinChatToBottom(messagesContainerRef.current, 'auto');
+        run();
+        requestAnimationFrame(run);
+        window.setTimeout(run, 80);
+        window.setTimeout(run, 280);
+        window.setTimeout(() => { jumpingToMessageRef.current = false; }, 420);
+    };
+
+    const scrollOpenThread = () => {
+        jumpingToMessageRef.current = true;
+        scheduleChatOpenScroll(messagesContainerRef.current);
+        window.setTimeout(() => { jumpingToMessageRef.current = false; }, 450);
     };
 
     // Слушатель прокрутки контейнера чата
@@ -143,22 +161,32 @@ export function useChatActions({ refreshRooms }: UseChatActionsProps) {
         };
     }, [contextMenu]);
 
-    // Удержание камеры скролла на нижних сообщениях
     useEffect(() => {
         if (messages.length === 0) return;
         const container = messagesContainerRef.current;
         if (!container) return;
         if (isMySentAction.current) {
-            setTimeout(() => { container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' }); }, 50);
+            pinChatToBottom(container, 'smooth');
             isMySentAction.current = false;
             return;
         }
         if (jumpingToMessageRef.current) return;
-        const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 250;
-        if (isNearBottom) {
-            setTimeout(() => { container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' }); }, 50);
-        }
+        if (isNearChatBottom(container)) pinChatToBottom(container, 'smooth');
     }, [messages.length]);
+
+    useEffect(() => {
+        const onViewport = () => {
+            const input = inputRef.current;
+            if (!input || document.activeElement !== input) return;
+            pinChatToBottom(messagesContainerRef.current, 'auto');
+        };
+        window.visualViewport?.addEventListener('resize', onViewport);
+        window.addEventListener('resize', onViewport);
+        return () => {
+            window.visualViewport?.removeEventListener('resize', onViewport);
+            window.removeEventListener('resize', onViewport);
+        };
+    }, []);
 
     // Открытие кастомного контекстного меню с идеальным расчетом границ экрана (+15px сдвиг)
     const longPressRef = useRef<{ timer: number | null; x: number; y: number }>({ timer: null, x: 0, y: 0 });
@@ -489,6 +517,9 @@ export function useChatActions({ refreshRooms }: UseChatActionsProps) {
         resetSelectionMode,
         showScrollDown,
         scrollToBottom,
-        handleChatScroll
+        handleChatScroll,
+        revealLatest,
+        handleComposerFocus,
+        scrollOpenThread,
     };
 }

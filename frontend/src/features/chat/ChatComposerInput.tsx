@@ -17,15 +17,20 @@ export default function ChatComposerInput({
     onChange,
     onSend,
     placeholder,
+    onFocus,
+    onHeightChange,
 }: {
     inputRef: React.MutableRefObject<HTMLTextAreaElement | null>;
     value: string;
     onChange: (next: string) => void;
     onSend: () => void;
     placeholder: string;
+    onFocus?: () => void;
+    onHeightChange?: () => void;
 }) {
     useLayoutEffect(() => {
         resizeComposer(inputRef.current);
+        onHeightChange?.();
     }, [value, inputRef]);
 
     useEffect(() => {
@@ -55,6 +60,7 @@ export default function ChatComposerInput({
             placeholder={placeholder}
             enterKeyHint="enter"
             autoComplete="off"
+            onFocus={() => onFocus?.()}
             className="w-full max-h-32 px-4 py-2.5 text-[16px] md:text-sm leading-snug bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5C4B7A]/30 focus:bg-white transition resize-none overflow-y-hidden whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
         />
     );
