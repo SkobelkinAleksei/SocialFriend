@@ -35,8 +35,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -61,7 +59,6 @@ public class UserServiceImpl implements UserService {
     private final OutboxService outboxService;
     private final PasswordEncoder passwordEncoder;
     private final AppMetrics appMetrics;
-    private final EmailOtpService emailOtpService;
 
     @Value("${app.services.friend-base-url:http://localhost:8082}")
     private String friendBaseUrl;
@@ -141,19 +138,6 @@ public class UserServiceImpl implements UserService {
         outboxService.enqueue(UserKafkaTopics.REGISTERED, saved.getId(), event);
         appMetrics.registraciyaUspeh();
         log.info("[Регистрация] Новый пользователь userId={}", saved.getId());
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    try {
-                        emailOtpService.sendVerifyCode(saved.getEmail());
-                    } catch (Exception ex) {
-                        log.warn("[Регистрация] Не отправили код подтверждения userId={}: {}",
-                                saved.getId(), ex.getMessage());
-                    }
-                }
-            });
-        }
         return userDto;
     }
 

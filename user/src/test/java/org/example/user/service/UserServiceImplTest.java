@@ -80,8 +80,6 @@ public class UserServiceImplTest {
     private PasswordEncoder passwordEncoder;
     @Mock
     private AppMetrics appMetrics;
-    @Mock
-    private org.example.user.service.EmailOtpService emailOtpService;
 
     @InjectMocks
     private UserServiceImpl userService;

@@ -3,6 +3,7 @@ package org.example.user.controller;
 import com.example.common.dto.event.UserDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.user.dto.EmailCodeRequest;
 import org.example.user.dto.RegistrationUserDto;
 import org.example.user.dto.ResetPasswordRequest;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Slf4j
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/social/registration")
 @RestController
@@ -26,7 +28,14 @@ public class PublicUserController {
     public ResponseEntity<UserDto> signUp(
             @Valid @RequestBody RegistrationUserDto registrationUserDto
     ) {
-        return ResponseEntity.ok().body(userService.signUp(registrationUserDto));
+        UserDto created = userService.signUp(registrationUserDto);
+        try {
+            emailOtpService.sendVerifyCode(registrationUserDto.getEmail());
+        } catch (Exception ex) {
+            log.warn("[Регистрация] Не отправили код подтверждения на {}: {}",
+                    registrationUserDto.getEmail(), ex.getMessage());
+        }
+        return ResponseEntity.ok().body(created);
     }
 
     @PostMapping("/verify-email")
