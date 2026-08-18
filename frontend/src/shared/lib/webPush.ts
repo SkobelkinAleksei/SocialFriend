@@ -1,4 +1,7 @@
 import api from '@/shared/lib/api';
+import { apiUrl } from '@/shared/lib/runtime';
+
+let cachedEndpoint: string | null = null;
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -38,12 +41,51 @@ export async function enableWebPush(): Promise<boolean> {
     applicationServerKey: urlBase64ToUint8Array(key) as BufferSource,
   });
   const json = subscription.toJSON();
+  if (json.endpoint) cachedEndpoint = json.endpoint;
   await api.post('/api/v1/social/notifications/push/subscribe', {
     endpoint: json.endpoint,
     p256dh: json.keys?.p256dh,
     auth: json.keys?.auth,
   });
+  await reportPushViewing(document.visibilityState === 'visible');
   return true;
+}
+
+export async function currentPushEndpoint(): Promise<string | null> {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return null;
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    cachedEndpoint = subscription?.endpoint || null;
+    return cachedEndpoint;
+  } catch {
+    return null;
+  }
+}
+
+/** Сайт на экране — системный push на это устройство не шлём. */
+export async function reportPushViewing(viewing: boolean): Promise<void> {
+  if (!isWebPushGranted()) return;
+  const endpoint = await currentPushEndpoint();
+  if (!endpoint) return;
+  await api.post('/api/v1/social/notifications/push/viewing', { endpoint, viewing });
+}
+
+/** Закрытие вкладки: обычный axios может не успеть. */
+export function reportPushViewingOnUnload(): void {
+  if (!isWebPushGranted()) return;
+  const token = localStorage.getItem('token');
+  const endpoint = cachedEndpoint;
+  if (!token || !endpoint) return;
+  fetch(apiUrl('/api/v1/social/notifications/push/viewing'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ endpoint, viewing: false }),
+    keepalive: true,
+  }).catch(() => undefined);
 }
 
 export async function disableWebPush(): Promise<void> {
@@ -54,6 +96,7 @@ export async function disableWebPush(): Promise<void> {
     if (subscription) {
       await api.post('/api/v1/social/notifications/push/unsubscribe', { endpoint: subscription.endpoint }).catch(() => undefined);
       await subscription.unsubscribe();
+      cachedEndpoint = null;
     }
   } catch {
     /* ignore */

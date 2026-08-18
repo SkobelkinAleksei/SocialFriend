@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.security.Security;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,16 +32,19 @@ public class WebPushService {
     private final ObjectMapper objectMapper;
     private final String publicKey;
     private final PushService pushService;
+    private final int viewingTtlSeconds;
 
     public WebPushService(
             PushSubscriptionRepository repository,
             ObjectMapper objectMapper,
             @Value("${app.vapid.public-key:}") String publicKey,
             @Value("${app.vapid.private-key:}") String privateKey,
-            @Value("${app.vapid.subject:mailto:myraion@inbox.ru}") String subject
+            @Value("${app.vapid.subject:mailto:myraion@inbox.ru}") String subject,
+            @Value("${app.push.viewing-ttl-seconds:75}") int viewingTtlSeconds
     ) {
         this.repository = repository;
         this.objectMapper = objectMapper;
+        this.viewingTtlSeconds = viewingTtlSeconds > 0 ? viewingTtlSeconds : 75;
         this.publicKey = publicKey == null ? "" : publicKey.trim();
         String priv = privateKey == null ? "" : privateKey.trim();
         PushService service = null;
@@ -88,6 +92,25 @@ public class WebPushService {
         repository.deleteByUserIdAndEndpoint(userId, endpoint.trim());
     }
 
+    @Transactional
+    public void setViewing(Long userId, String endpoint, boolean viewing) {
+        if (!StringUtils.hasText(endpoint)) {
+            return;
+        }
+        repository.findByEndpoint(endpoint.trim()).ifPresent(row -> {
+            if (!userId.equals(row.getUserId())) {
+                return;
+            }
+            row.setForegroundUntil(viewing ? Instant.now().plusSeconds(viewingTtlSeconds) : null);
+            repository.save(row);
+        });
+    }
+
+    static boolean isViewingNow(PushSubscriptionEntity row, Instant now) {
+        Instant until = row.getForegroundUntil();
+        return until != null && until.isAfter(now);
+    }
+
     @Async
     @Transactional
     public void sendToUser(Long userId, NotificationDto dto) {
@@ -110,7 +133,12 @@ public class WebPushService {
             log.warn("[Push] Не собрали payload: {}", ex.getMessage());
             return;
         }
+        Instant now = Instant.now();
         for (PushSubscriptionEntity sub : subs) {
+            if (isViewingNow(sub, now)) {
+                log.info("[Push] Пропуск: устройство смотрит сайт user={}", userId);
+                continue;
+            }
             try {
                 Notification notification = new Notification(
                         sub.getEndpoint(),

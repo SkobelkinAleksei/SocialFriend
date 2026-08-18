@@ -36,6 +36,10 @@ public class PushSubscriptionEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    /** До этого момента устройство смотрит сайт — системный push туда не шлём. */
+    @Column(name = "foreground_until")
+    private Instant foregroundUntil;
+
     @PrePersist
     @PreUpdate
     void touch() {

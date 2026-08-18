@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.notification.dto.PushSubscribeRequest;
+import org.example.notification.dto.PushViewingRequest;
 import org.example.notification.service.NotificationService;
 import org.example.notification.service.WebPushService;
 import org.springframework.http.ResponseEntity;
@@ -91,6 +92,15 @@ public class NotificationController {
             @Valid @RequestBody PushSubscribeRequest request
     ) {
         webPushService.subscribe(Long.parseLong(userId), request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/push/viewing")
+    public ResponseEntity<Void> pushViewing(
+            @RequestHeader("X-User-Id") String userId,
+            @Valid @RequestBody PushViewingRequest request
+    ) {
+        webPushService.setViewing(Long.parseLong(userId), request.getEndpoint(), request.isViewing());
         return ResponseEntity.noContent().build();
     }
 

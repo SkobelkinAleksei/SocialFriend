@@ -34,6 +34,8 @@ app:
     public-key: ${VAPID_PUBLIC_KEY:}
     private-key: ${VAPID_PRIVATE_KEY:}
     subject: ${VAPID_SUBJECT:mailto:myraion@inbox.ru}
+  push:
+    viewing-ttl-seconds: 75
 
 management:
   server:

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api, { logOutUser } from '@/shared/lib/api';
 import { pingPresence, PRESENCE_INTERVAL_MS } from '@/shared/utils/presence';
+import { reportPushViewing, reportPushViewingOnUnload } from '@/shared/lib/webPush';
 
 interface UserProfile {
     id: number;
@@ -107,6 +108,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const ping = async () => {
             try {
                 await pingPresence();
+                if (document.visibilityState === 'visible') {
+                    await reportPushViewing(true).catch(() => undefined);
+                }
                 if (!cancelled) {
                     setUser((prev) => (prev && prev.online !== true ? { ...prev, online: true } : prev));
                 }
@@ -117,13 +121,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ping();
         const intervalId = window.setInterval(ping, PRESENCE_INTERVAL_MS);
         const onVisibility = () => {
-            if (document.visibilityState === 'visible') ping();
+            if (document.visibilityState === 'visible') {
+                ping();
+            } else {
+                void reportPushViewing(false).catch(() => undefined);
+            }
         };
+        const onPageHide = () => reportPushViewingOnUnload();
         document.addEventListener('visibilitychange', onVisibility);
+        window.addEventListener('pagehide', onPageHide);
         return () => {
             cancelled = true;
             window.clearInterval(intervalId);
             document.removeEventListener('visibilitychange', onVisibility);
+            window.removeEventListener('pagehide', onPageHide);
+            reportPushViewingOnUnload();
         };
     }, [user?.id, user?.platformRole]);
 
