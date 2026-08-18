@@ -25,7 +25,11 @@ spring:
     properties:
       mail.smtp.auth: true
       mail.smtp.ssl.enable: ${MAIL_SMTP_SSL:true}
+      mail.smtp.ssl.trust: smtp.mail.ru
       mail.smtp.starttls.enable: ${MAIL_SMTP_STARTTLS:false}
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
   jpa:
     hibernate:
       ddl-auto: update

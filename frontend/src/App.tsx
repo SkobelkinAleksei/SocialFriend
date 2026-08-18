@@ -749,9 +749,9 @@ function AppContent() {
 
 function authPageFromPath(): 'login' | 'register' | 'verify-email' | 'forgot-password' | 'privacy' | 'rules' {
   const path = window.location.pathname;
-  if (path.includes('register')) return 'register';
   if (path.includes('verify-email')) return 'verify-email';
   if (path.includes('forgot-password')) return 'forgot-password';
+  if (path.includes('register')) return 'register';
   if (path.includes('privacy')) return 'privacy';
   if (path.includes('rules')) return 'rules';
   return 'login';
@@ -773,9 +773,19 @@ function AuthScreens() {
 
   const goAuth = (next: string) => {
     if (next === 'login' || next === 'register' || next === 'verify-email' || next === 'forgot-password' || next === 'privacy' || next === 'rules') {
+      const url = urlForPage(next);
+      if (normalizePathname(window.location.pathname) !== url) {
+        window.history.pushState({}, '', url);
+      }
       setPage(next);
     }
   };
+
+  useEffect(() => {
+    const onPop = () => setPage(authPageFromPath());
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
 
   useAppBackHandler(!!legalDoc, closeLegal);
 

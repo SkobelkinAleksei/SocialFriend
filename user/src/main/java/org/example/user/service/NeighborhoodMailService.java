@@ -1,10 +1,11 @@
 package org.example.user.service;
 
+import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -31,21 +32,28 @@ public class NeighborhoodMailService {
     }
 
     public void sendCode(String to, String subject, String body, String plainCode) {
-        if (logCodes || !StringUtils.hasText(mailHost)) {
-            log.info("[Почта] Код для {} (SMTP выключен или log-codes): {}", to, plainCode);
+        if (logCodes) {
+            log.info("[Почта] Код для {} (log-codes): {}", to, plainCode);
         }
         if (!StringUtils.hasText(mailHost) || mailSender == null) {
-            return;
+            log.warn("[Почта] SMTP не настроен (MAIL_HOST пустой) — письмо на {} не ушло", to);
+            throw new IllegalStateException("Сервер ещё не умеет слать письма. Напишите в поддержку района.");
         }
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(to);
-        message.setSubject(subject);
-        message.setText(body);
-        String sender = StringUtils.hasText(from) ? from : username;
-        if (StringUtils.hasText(sender)) {
-            message.setFrom(sender);
+        try {
+            MimeMessage mime = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mime, "UTF-8");
+            String sender = StringUtils.hasText(from) ? from : username;
+            if (StringUtils.hasText(sender)) {
+                helper.setFrom(sender);
+            }
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(body, false);
+            mailSender.send(mime);
+            log.info("[Почта] Письмо отправлено на {}", to);
+        } catch (Exception ex) {
+            log.warn("[Почта] Не отправили на {}: {}", to, ex.getMessage());
+            throw new IllegalStateException("Не получилось отправить письмо. Попробуйте через минуту.");
         }
-        mailSender.send(message);
-        log.info("[Почта] Письмо отправлено на {}", to);
     }
 }

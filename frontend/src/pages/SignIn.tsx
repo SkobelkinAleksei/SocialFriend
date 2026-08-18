@@ -88,7 +88,16 @@ export default function SignIn({ setPage, onOpenLegal }: SignInProps) {
                         </div>
 
                         <div>
-                            <label className="text-xs font-semibold text-slate-600 mb-1 block">Пароль</label>
+                            <div className="flex items-baseline justify-between mb-1 gap-3">
+                                <label className="text-xs font-semibold text-slate-600">Пароль</label>
+                                <button
+                                    type="button"
+                                    onClick={() => setPage('forgot-password')}
+                                    className={`${theme.accent.text} text-xs font-semibold hover:underline bg-transparent border-none p-0 cursor-pointer shrink-0`}
+                                >
+                                    Забыли пароль?
+                                </button>
+                            </div>
                             <div className="relative">
                                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                                 <input
@@ -108,16 +117,6 @@ export default function SignIn({ setPage, onOpenLegal }: SignInProps) {
                                 </button>
                             </div>
                         </div>
-
-                        <p className="text-right -mt-1">
-                            <button
-                                type="button"
-                                onClick={() => setPage('forgot-password')}
-                                className={`${theme.accent.text} text-xs font-semibold hover:underline bg-transparent border-none p-0 cursor-pointer`}
-                            >
-                                Забыли пароль?
-                            </button>
-                        </p>
 
                         <Button type="submit" variant="primary" className="w-full mt-2 min-h-11">
                             Войти
