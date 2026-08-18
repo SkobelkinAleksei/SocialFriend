@@ -6,6 +6,7 @@ import {
   performAppBack,
   swipeBackOriginX,
 } from '@/shared/utils/navigation';
+import { getViewingChat } from '@/shared/lib/viewingChat';
 
 const COMMIT_PX = 72;
 
@@ -25,7 +26,7 @@ export default function MobileSwipeBack() {
 
     const edgeLimit = () => {
       const origin = swipeBackOriginX();
-      const chatOpen = Boolean(document.querySelector('[data-open-group-chat], [data-open-personal-chat]'));
+      const chatOpen = Boolean(getViewingChat());
       if (chatOpen) return origin + Math.min(window.innerWidth * 0.4, 180);
       if (hasAppBackHandler()) return origin + 80;
       return origin + MOBILE_SWIPE_BACK_EDGE;

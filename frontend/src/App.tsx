@@ -534,7 +534,7 @@ function AppContent() {
               )}
               {visitedMainPagesRef.current.has('chats') && (
                 <div hidden={page !== 'chats'} className={page === 'chats' ? 'h-full' : undefined}>
-                  <Chats />
+                  <Chats pageActive={page === 'chats'} />
                 </div>
               )}
               {visitedMainPagesRef.current.has('district') && (

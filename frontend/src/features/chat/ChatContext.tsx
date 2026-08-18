@@ -5,6 +5,8 @@ import { wsAuthUrl } from '@/shared/lib/runtime';
 import { showAppInfoToast } from '@/shared/utils/appToast';
 import { useAuth } from '@/shared/context/AuthContext';
 import { fetchPresence, PRESENCE_INTERVAL_MS } from '@/shared/utils/presence';
+import { isGroupChatNotificationLabel } from '@/shared/utils/navigation';
+import { getViewingChat } from '@/shared/lib/viewingChat';
 // ИМПОРТ ДЛЯ ПРОДАКШНА: Нативно подключаем модалку деталей в глобальный слой
 import EventDetailsModal from '@/features/events/EventDetailsModal';
 import CreateEventDrawer from '@/features/events/CreateEventDrawer';
@@ -503,8 +505,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
                     if (!targetChat) return chatsList;
                     const isFromMe = Number(body.senderId) === Number(currentUser?.id);
                     const isEditAction = body.edited === true;
-                    const openPersonalId = document.querySelector('[data-open-personal-chat]')?.getAttribute('data-open-personal-chat');
-                    const isChatWindowOpen = openPersonalId != null && String(openPersonalId) === String(partnerId);
+                    const viewing = getViewingChat();
+                    const isChatWindowOpen = viewing?.kind === 'personal' && viewing.id === String(partnerId);
                     const shouldIncrement = !isFromMe && !messageIsDeleted && !isEditAction && !isChatWindowOpen;
                     let targetLastMessage = targetChat.last_message;
                     let targetLastMessageId = targetChat.lastMessageId;
@@ -593,8 +595,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
                         : (body.poll?.question ? `Голосование: ${body.poll.question}` : body.content);
                 const finalLastMessage = formatSidebarMessage(rawLastMessage, mediaHintFromMessage({ ...body, ...media }));
                 const finalTime = isTechnicalDeleteAction || isPollUpdate ? targetRoom.time : parseSidebarTime(body.timestamp);
-                const openGroupId = document.querySelector('[data-open-group-chat]')?.getAttribute('data-open-group-chat');
-                const isGroupOpen = openGroupId != null && String(openGroupId) === String(body.chatId);
+                const viewing = getViewingChat();
+                const isGroupOpen = viewing?.kind === 'group' && viewing.id === String(body.chatId);
                 const finalUnread = (isMessageFromMe || isTechnicalDeleteAction || isEditAction || isPollUpdate || isGroupOpen)
                     ? (targetRoom.unread || 0)
                     : ((targetRoom.unread || 0) + 1);
@@ -673,15 +675,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             if (!body || body.type !== 'NEW_CHAT_MESSAGE') return;
 
             const label = String(body.contextLabel || '');
-            const isGroup = label.startsWith('GROUP:');
-            const openPersonalId = document.querySelector('[data-open-personal-chat]')?.getAttribute('data-open-personal-chat');
-            const openGroupId = document.querySelector('[data-open-group-chat]')?.getAttribute('data-open-group-chat');
+            const isGroup = isGroupChatNotificationLabel(label);
+            const viewing = getViewingChat();
 
             if (isGroup) {
-                if (openGroupId && String(openGroupId) === String(body.targetId)) return;
+                if (viewing?.kind === 'group' && viewing.id === String(body.targetId)) return;
                 void refreshEventRooms();
             } else {
-                if (openPersonalId && String(openPersonalId) === String(body.senderId)) return;
+                if (viewing?.kind === 'personal' && viewing.id === String(body.senderId)) return;
                 void refreshPersonalChats();
             }
         };

@@ -23,6 +23,7 @@ import { getAvatarUrl, persistOpenChat, clearPersistedOpenChat, readPersistedOpe
 import { useAppBackHandler } from '@/shared/hooks/useAppBackHandler';
 import { readChatDraft, subscribeChatDrafts } from '@/features/chat/chatDrafts';
 import { showAppInfoToast } from '@/shared/utils/appToast';
+import { clearViewingChat, setViewingChat } from '@/shared/lib/viewingChat';
 
 interface Chat {
   id: string;
@@ -60,7 +61,7 @@ interface ChatRoom {
 
 type SidebarTab = 'personal' | 'events';
 
-export default function Chats() {
+export default function Chats({ pageActive = true }: { pageActive?: boolean }) {
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>(() => readPersistedChatsSidebarTab() ?? 'personal');
   const { user } = useAuth();
   const { eventRooms, chats, setChats, setEventRooms, personalGroups, setPersonalGroups, refreshEventRooms } = useChat();
@@ -75,6 +76,17 @@ export default function Chats() {
   const [draftTick, setDraftTick] = useState(0);
 
   const chatIsOpen = Boolean(active || activeRoom);
+
+  useEffect(() => {
+    if (!pageActive) {
+      clearViewingChat();
+      return;
+    }
+    if (active) setViewingChat('personal', active.id);
+    else if (activeRoom) setViewingChat('group', activeRoom.id);
+    else clearViewingChat();
+    return () => clearViewingChat();
+  }, [pageActive, active, activeRoom]);
 
   useAppBackHandler(chatIsOpen, () => {
     setActive(null);

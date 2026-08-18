@@ -8,6 +8,7 @@ import { parsePhotoContextLabel, routeCommentNotification } from '@/shared/utils
 import { useChat } from '@/features/chat/ChatContext';
 import { requestOpenChatFromNotification, isCompactViewport } from '@/shared/utils/navigation';
 import { bindNotificationSoundUnlock, playNotificationSound } from '@/shared/utils/notificationSound';
+import { isViewingThisChat } from '@/shared/lib/viewingChat';
 
 interface NotificationContextType {
     notificationsCount: number;
@@ -114,14 +115,7 @@ function SwipeableBanner({
 
 /** Открыт ли сейчас тот чат, из которого пришло сообщение */
 function isChatAlreadyOpen(body: any): boolean {
-    if (!body || body.type !== 'NEW_CHAT_MESSAGE') return false;
-    const label = String(body.contextLabel || '');
-    if (isGroupChatLabel(label)) {
-        const openGroupId = document.querySelector('[data-open-group-chat]')?.getAttribute('data-open-group-chat');
-        return openGroupId != null && String(openGroupId) === String(body.targetId);
-    }
-    const openPersonalId = document.querySelector('[data-open-personal-chat]')?.getAttribute('data-open-personal-chat');
-    return openPersonalId != null && String(openPersonalId) === String(body.senderId);
+    return isViewingThisChat(body);
 }
 
 // ОБНОВЛЕНО: Провайдер теперь принимает setPage из роутинга App.tsx
