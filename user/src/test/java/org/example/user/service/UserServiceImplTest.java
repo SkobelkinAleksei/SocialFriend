@@ -80,6 +80,8 @@ public class UserServiceImplTest {
     private PasswordEncoder passwordEncoder;
     @Mock
     private AppMetrics appMetrics;
+    @Mock
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -117,6 +119,7 @@ public class UserServiceImplTest {
             assertEquals("$2a$new", mapped.getPassword());
             verify(outboxService).enqueue(eq(UserKafkaTopics.REGISTERED), eq(11L), any(UserRegisteredEvent.class));
             verify(appMetrics).registraciyaUspeh();
+            verify(eventPublisher).publishEvent(any());
         }
 
         @Test
