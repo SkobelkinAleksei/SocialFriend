@@ -169,7 +169,7 @@ export default function SignUp({ setPage, onOpenLegal }: SignUpProps) {
                     <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Создать аккаунт</h1>
                     <p className="text-slate-500 text-sm mt-1.5">Добро пожаловать в соседскую сеть «На районе»</p>
                 </div>
-                <Card className="shadow-xl">
+                <Card className="shadow-xl overflow-visible">
                     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                         {(error || fieldError) && (
                             <div className="p-3 text-xs bg-red-50 text-red-600 rounded-xl border border-red-100 font-medium">
@@ -219,7 +219,7 @@ export default function SignUp({ setPage, onOpenLegal }: SignUpProps) {
                             onChange={(v: string) => setFormData({...formData, birthday: v})}
                         />
 
-                        <div>
+                        <div className="relative z-20">
                             <label className="text-xs font-semibold text-slate-600 mb-1 block">Адрес проживания (город, улица, дом)</label>
                             <div className="relative">
                                 <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -243,29 +243,28 @@ export default function SignUp({ setPage, onOpenLegal }: SignUpProps) {
                                     name="home-address"
                                     className={`w-full pl-10 pr-4 py-2.5 text-base sm:text-sm bg-slate-50 border ${theme.surface.border} ${theme.radius.btn} focus:outline-none focus:ring-2 ${theme.accent.ring} focus:bg-white transition text-slate-900 placeholder:text-slate-400`}
                                 />
+                                {suggestions.length > 0 && (
+                                    <div
+                                        ref={suggestionsRef}
+                                        className={`absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto overscroll-contain bg-white border ${theme.surface.border} ${theme.radius.card} shadow-lg`}
+                                    >
+                                        {suggestions.map((s, idx) => (
+                                            <button
+                                                key={idx}
+                                                type="button"
+                                                onPointerDown={(e) => {
+                                                    e.preventDefault();
+                                                    handleSelectAddress(s);
+                                                }}
+                                                className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition border-b border-slate-50 last:border-0 focus:outline-none"
+                                            >
+                                                {s.value}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                             <p className="text-[11px] text-slate-400 mt-1">Выберите адрес из подсказок.</p>
-
-                            {suggestions.length > 0 && (
-                                <div
-                                    ref={suggestionsRef}
-                                    className={`mt-2 bg-white border ${theme.surface.border} ${theme.radius.card} shadow-lg overflow-hidden`}
-                                >
-                                    {suggestions.map((s, idx) => (
-                                        <button
-                                            key={idx}
-                                            type="button"
-                                            onPointerDown={(e) => {
-                                                e.preventDefault();
-                                                handleSelectAddress(s);
-                                            }}
-                                            className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition border-b border-slate-50 last:border-0 focus:outline-none"
-                                        >
-                                            {s.value}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
                         </div>
 
                         <div>

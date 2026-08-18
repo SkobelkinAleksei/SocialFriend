@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { User, Users, MessageCircle, MapPin, Settings, Sparkles, Calendar, LogOut, Bell } from 'lucide-react';
+import { User, Users, MessageCircle, MapPin, Settings, Calendar, LogOut, Bell } from 'lucide-react';
 import { theme } from '@/shared/ui/theme';
 import { useAuth } from '@/shared/context/AuthContext';
 import { useChat } from '@/features/chat/ChatContext';
@@ -64,9 +64,13 @@ export default function Sidebar({ page, setPage }: SidebarProps) {
         {/* Логотип */}
         <div className="px-6 py-6">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#5C4B7A] flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" strokeWidth={2} />
-            </div>
+            <img
+              src="/icons/icon-192.png"
+              alt=""
+              width={36}
+              height={36}
+              className="w-9 h-9 rounded-xl shrink-0"
+            />
             <div>
               <div className="myraion-display text-[18px] text-[#1A1916] leading-tight">На районе</div>
               <div className="text-[11px] text-[#6B645C]">соседская сеть</div>

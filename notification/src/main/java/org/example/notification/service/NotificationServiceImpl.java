@@ -35,6 +35,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationMapper notificationMapper;
     private final NotificationAggregator notificationAggregator;
     private final AppMetrics appMetrics;
+    private final WebPushService webPushService;
 
     @Override
     @Transactional
@@ -169,6 +170,7 @@ public class NotificationServiceImpl implements NotificationService {
                     dto
             );
             appMetrics.uvedomlenieOtpravleno();
+            webPushService.sendToUser(receiverId, dto);
         } catch (Exception ex) {
             appMetrics.uvedomlenieOshibka();
             log.error("[Уведомления] Не удалось отправить в сокет пользователю {}: {}", receiverId, ex.getMessage());

@@ -1,5 +1,6 @@
 package org.example.user.service;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,13 +16,13 @@ public class NeighborhoodMailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${spring.mail.host:}")
+    @Value("${MAIL_HOST:${spring.mail.host:}}")
     private String mailHost = "";
 
-    @Value("${app.mail.from:}")
+    @Value("${app.mail.from:${MAIL_FROM:}}")
     private String from = "";
 
-    @Value("${spring.mail.username:}")
+    @Value("${MAIL_USERNAME:${spring.mail.username:}}")
     private String username = "";
 
     @Value("${app.mail.log-codes:false}")
@@ -29,6 +30,11 @@ public class NeighborhoodMailService {
 
     public NeighborhoodMailService(@Autowired(required = false) JavaMailSender mailSender) {
         this.mailSender = mailSender;
+    }
+
+    @PostConstruct
+    void logSetup() {
+        log.info("[Почта] host='{}' sender={}", mailHost, mailSender != null ? "ok" : "NULL");
     }
 
     public void sendCode(String to, String subject, String body, String plainCode) {

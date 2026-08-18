@@ -37,11 +37,8 @@ public class EmailOtpService {
     public void sendVerifyCode(String rawEmail) {
         String email = normalize(rawEmail);
         UserEntity user = userRepository.findByEmailIgnoreCase(email).orElse(null);
-        if (user == null || !user.isActiveAccount()) {
+        if (user == null || !user.isActiveAccount() || Boolean.TRUE.equals(user.getEmailVerified())) {
             return;
-        }
-        if (Boolean.TRUE.equals(user.getEmailVerified())) {
-            throw new IllegalStateException("Эта почта уже подтверждена. Можно входить.");
         }
         issue(email, EmailOtpPurpose.VERIFY,
                 "Код подтверждения — На районе",

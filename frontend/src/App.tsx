@@ -44,6 +44,7 @@ import { NotificationProvider } from '@/shared/context/NotificationContext';
 import api from '@/shared/lib/api';
 import PostCard from '@/features/feed/PostCard';
 import { ReportProvider } from '@/features/report/ReportModal';
+import DevicePrompts from '@/features/device/DevicePrompts';
 
 function requestsWaitingLabel(count: number): string {
   const n10 = count % 10;
@@ -509,6 +510,7 @@ function AppContent() {
       <div className="min-h-screen min-h-dvh myraion-page-wash text-[#1A1916]">
         <Sidebar page={page} setPage={(targetPage) => navigate(targetPage)} />
         <MobileTopBar page={page} setPage={(targetPage) => navigate(targetPage)} />
+        <DevicePrompts />
         <MobileSwipeBack />
         <MobilePullToRefresh />
         <main className={`md:ml-64 min-h-dvh md:min-h-screen ${

@@ -1,7 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <rect width="100" height="100" rx="22" fill="#EFEAF6"/>
-  <path d="M18 52 L50 22 L82 52 V82 H18 Z" fill="#5C4B7A"/>
-  <rect x="42" y="58" width="16" height="24" rx="2" fill="#FFFCFA"/>
-  <rect x="28" y="56" width="12" height="12" rx="2" fill="#FFFCFA"/>
-  <rect x="60" y="56" width="12" height="12" rx="2" fill="#FFFCFA"/>
+  <path d="M14 56 L42 28 L70 56 V84 H14 Z" fill="#5C4B7A"/>
+  <rect x="38" y="62" width="12" height="22" rx="3" fill="#FFFCFA"/>
+  <circle cx="47" cy="74" r="1.2" fill="#5C4B7A"/>
+  <g fill="#FFFCFA">
+    <rect x="22" y="60" width="5" height="5" rx="0.6"/>
+    <rect x="28" y="60" width="5" height="5" rx="0.6"/>
+    <rect x="22" y="66" width="5" height="5" rx="0.6"/>
+    <rect x="28" y="66" width="5" height="5" rx="0.6"/>
+    <rect x="49" y="60" width="5" height="5" rx="0.6"/>
+    <rect x="55" y="60" width="5" height="5" rx="0.6"/>
+    <rect x="49" y="66" width="5" height="5" rx="0.6"/>
+    <rect x="55" y="66" width="5" height="5" rx="0.6"/>
+  </g>
+  <rect x="76" y="64" width="5" height="20" rx="1.5" fill="#5C4B7A"/>
+  <ellipse cx="78.5" cy="52" rx="13" ry="17" fill="#6B8F72"/>
+  <path d="M78.5 42 V62 M78.5 48 L73 52 M78.5 48 L84 52 M78.5 54 L74 58 M78.5 54 L83 58" fill="none" stroke="#3D6B56" stroke-width="1.6" stroke-linecap="round"/>
 </svg>

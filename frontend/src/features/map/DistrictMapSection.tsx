@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-lea
 import L from 'leaflet';
 import api from '@/shared/lib/api';
 import { showAppInfoToast } from '@/shared/utils/appToast';
+import { maybeAskGeo, whenDevicePromptsDone } from '@/shared/lib/geoPrompt';
 import { useAuth } from '@/shared/context/AuthContext';
 import Card from '@/shared/ui/Card';
 import Button from '@/shared/ui/Button';
@@ -479,7 +480,11 @@ const DistrictMapSection = forwardRef<any, DistrictMapSectionProps>((
                         onReady={() => {
                             if (gpsRequestedRef.current) return;
                             gpsRequestedRef.current = true;
-                            requestGps({ silent: true, fly: true });
+                            whenDevicePromptsDone(() => {
+                                void maybeAskGeo().then((ok) => {
+                                    if (ok) requestGps({ silent: true, fly: true });
+                                });
+                            });
                         }}
                     />
                     <MapViewportSync

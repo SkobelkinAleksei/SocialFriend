@@ -43,6 +43,8 @@ public class NotificationServiceImplTest {
     private NotificationAggregator notificationAggregator;
     @Mock
     private AppMetrics appMetrics;
+    @Mock
+    private WebPushService webPushService;
 
     @InjectMocks
     private NotificationServiceImpl service;

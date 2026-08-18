@@ -6,6 +6,7 @@ import api from '@/shared/lib/api';
 import { apiUrl } from '@/shared/lib/runtime';
 import { getAvatarUrl } from '@/shared/utils/navigation';
 import { isNotificationSoundEnabled, setNotificationSoundEnabled, playNotificationSound, unlockNotificationSound } from '@/shared/utils/notificationSound';
+import { disableWebPush, enableWebPush, isWebPushGranted } from '@/shared/lib/webPush';
 import {
   User,
   Bell,
@@ -27,6 +28,7 @@ import {
   Home,
   Clock,
   Volume2,
+  Smartphone,
   Trash2
 } from 'lucide-react';
 import { showAppConfirm } from '@/shared/utils/appToast';
@@ -104,6 +106,7 @@ export default function Settings() {
 
   const [loading, setLoading] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(isNotificationSoundEnabled);
+  const [phonePushEnabled, setPhonePushEnabled] = useState(isWebPushGranted);
 
   // Стейты для редактирования личных данных (UpdateUserDto)
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -662,6 +665,33 @@ export default function Settings() {
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer shrink-0 select-none">
                   <input type="checkbox" checked={settings.notifyReputation} onChange={(e) => handleToggleChange('notifyReputation', e.target.checked)} className="sr-only peer" />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full transition-colors peer peer-checked:bg-[#5C4B7A] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-5"></div>
+                </label>
+              </div>
+              <div className="flex items-center justify-between py-1 border-t border-slate-50 pt-4">
+                <div>
+                  <div className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <Smartphone className="w-4 h-4 text-slate-400" />
+                    <span>Уведомления на телефон</span>
+                  </div>
+                  <div className="text-xs text-slate-400 font-medium mt-0.5">Баннер на экране, когда район свёрнут</div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer shrink-0 select-none">
+                  <input
+                    type="checkbox"
+                    checked={phonePushEnabled}
+                    onChange={async (e) => {
+                      const next = e.target.checked;
+                      if (next) {
+                        const ok = await enableWebPush();
+                        setPhonePushEnabled(ok);
+                      } else {
+                        await disableWebPush();
+                        setPhonePushEnabled(false);
+                      }
+                    }}
+                    className="sr-only peer"
+                  />
                   <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full transition-colors peer peer-checked:bg-[#5C4B7A] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-5"></div>
                 </label>
               </div>

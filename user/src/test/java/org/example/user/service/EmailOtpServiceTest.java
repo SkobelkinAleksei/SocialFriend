@@ -90,4 +90,17 @@ class EmailOtpServiceTest {
         assertTrue(captor.getValue().getCodeHash().startsWith("$"));
         verify(mailService).sendCode(eq("anna@example.com"), any(), any(), any());
     }
+
+    @Test
+    @DisplayName("Почта уже подтверждена — письмо не шлём и ошибку не бросаем")
+    void alreadyVerifiedSilent() {
+        UserEntity user = UserFixtures.user(2L);
+        user.setEmailVerified(true);
+        when(userRepository.findByEmailIgnoreCase("anna@example.com")).thenReturn(Optional.of(user));
+
+        service.sendVerifyCode("anna@example.com");
+
+        verify(mailService, never()).sendCode(any(), any(), any(), any());
+        verify(otpRepository, never()).save(any());
+    }
 }

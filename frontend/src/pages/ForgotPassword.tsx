@@ -16,7 +16,9 @@ export default function ForgotPassword({ setPage }: ForgotPasswordProps) {
     const [email, setEmail] = useState('');
     const [code, setCode] = useState('');
     const [password, setPassword] = useState('');
+    const [passwordRepeat, setPasswordRepeat] = useState('');
     const [showPass, setShowPass] = useState(false);
+    const [showPassRepeat, setShowPassRepeat] = useState(false);
     const [error, setError] = useState('');
     const [info, setInfo] = useState('');
     const [busy, setBusy] = useState(false);
@@ -50,6 +52,10 @@ export default function ForgotPassword({ setPage }: ForgotPasswordProps) {
         const passErr = validatePassword(password);
         if (passErr) {
             setError(passErr);
+            return;
+        }
+        if (password !== passwordRepeat) {
+            setError('Пароли не совпадают');
             return;
         }
         setBusy(true);
@@ -137,8 +143,14 @@ export default function ForgotPassword({ setPage }: ForgotPasswordProps) {
                                         <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                                         <input
                                             type={showPass ? 'text' : 'password'}
+                                            name="new-password"
+                                            autoComplete="new-password"
+                                            autoCorrect="off"
+                                            spellCheck={false}
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
+                                            onCopy={(e) => e.preventDefault()}
+                                            onCut={(e) => e.preventDefault()}
                                             className={`w-full pl-10 pr-10 py-3 text-sm bg-slate-50 border ${theme.surface.border} ${theme.radius.btn} focus:outline-none focus:ring-2 ${theme.accent.ring} focus:bg-white transition text-slate-900 min-h-11`}
                                             required
                                         />
@@ -157,6 +169,32 @@ export default function ForgotPassword({ setPage }: ForgotPasswordProps) {
                                             ))}
                                         </ul>
                                     )}
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold text-slate-600 mb-1 block">Повтор нового пароля</label>
+                                    <div className="relative">
+                                        <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                                        <input
+                                            type={showPassRepeat ? 'text' : 'password'}
+                                            name="new-password-repeat"
+                                            autoComplete="new-password"
+                                            autoCorrect="off"
+                                            spellCheck={false}
+                                            value={passwordRepeat}
+                                            onChange={(e) => setPasswordRepeat(e.target.value)}
+                                            onCopy={(e) => e.preventDefault()}
+                                            onCut={(e) => e.preventDefault()}
+                                            className={`w-full pl-10 pr-10 py-3 text-sm bg-slate-50 border ${theme.surface.border} ${theme.radius.btn} focus:outline-none focus:ring-2 ${theme.accent.ring} focus:bg-white transition text-slate-900 min-h-11`}
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassRepeat(!showPassRepeat)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                        >
+                                            {showPassRepeat ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                        </button>
+                                    </div>
                                 </div>
                             </>
                         )}

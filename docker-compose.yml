@@ -124,6 +124,10 @@ services:
       MAIL_SMTP_SSL: ${MAIL_SMTP_SSL:-true}
       MAIL_SMTP_STARTTLS: ${MAIL_SMTP_STARTTLS:-false}
       MAIL_LOG_CODES: ${MAIL_LOG_CODES:-false}
+      SPRING_MAIL_HOST: ${MAIL_HOST:-}
+      SPRING_MAIL_PORT: ${MAIL_PORT:-465}
+      SPRING_MAIL_USERNAME: ${MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD:-}
     volumes:
       - user-uploads:/app/uploads/users
 
@@ -188,6 +192,9 @@ services:
     environment:
       <<: *spring-env
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/social_notification_db
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:myraion@inbox.ru}
 
   chat:
     <<: *jvm

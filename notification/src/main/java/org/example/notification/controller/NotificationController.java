@@ -2,13 +2,17 @@ package org.example.notification.controller;
 
 import com.example.common.kafka.NotificationDto;
 import com.example.common.kafka.NotificationGroupDto;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.notification.dto.PushSubscribeRequest;
 import org.example.notification.service.NotificationService;
+import org.example.notification.service.WebPushService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -16,6 +20,7 @@ import java.util.List;
 @RequestMapping("/api/v1/social/notifications")
 public class NotificationController {
     private final NotificationService notificationService;
+    private final WebPushService webPushService;
 
     @GetMapping
     public ResponseEntity<List<NotificationGroupDto>> getUserNotifications(
@@ -71,5 +76,31 @@ public class NotificationController {
 
         long unreadCount = notificationService.countUnreadNotifications(currentUserId);
         return ResponseEntity.ok(unreadCount);
+    }
+
+    @GetMapping("/push/vapid-public-key")
+    public ResponseEntity<Map<String, String>> vapidPublicKey() {
+        return webPushService.publicKey()
+                .map(key -> ResponseEntity.ok(Map.of("publicKey", key)))
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    @PostMapping("/push/subscribe")
+    public ResponseEntity<Void> subscribePush(
+            @RequestHeader("X-User-Id") String userId,
+            @Valid @RequestBody PushSubscribeRequest request
+    ) {
+        webPushService.subscribe(Long.parseLong(userId), request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/push/unsubscribe")
+    public ResponseEntity<Void> unsubscribePush(
+            @RequestHeader("X-User-Id") String userId,
+            @RequestBody(required = false) PushSubscribeRequest request
+    ) {
+        String endpoint = request == null ? null : request.getEndpoint();
+        webPushService.unsubscribe(Long.parseLong(userId), endpoint);
+        return ResponseEntity.noContent().build();
     }
 }

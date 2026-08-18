@@ -6,6 +6,8 @@ spring:
     name: user
   main:
     allow-bean-definition-overriding: true
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.mail.MailSenderAutoConfiguration
   servlet:
     multipart:
       max-file-size: 6MB

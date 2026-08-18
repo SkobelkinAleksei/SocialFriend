@@ -67,7 +67,7 @@ export default function VerifyEmail({ setPage, initialEmail }: VerifyEmailProps)
                 const data = await res.json().catch(() => ({}));
                 throw new Error(data.detail || 'Не отправили код');
             }
-            setInfo('Если аккаунт есть — новое письмо уже в пути. Загляните в «Спам».');
+            setInfo('Письмо уже в пути. Проверьте в «Спам».');
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : 'Ошибка');
         } finally {
@@ -81,7 +81,7 @@ export default function VerifyEmail({ setPage, initialEmail }: VerifyEmailProps)
                 <div className="text-center mb-6">
                     <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Подтвердите почту</h1>
                     <p className="text-slate-500 text-sm mt-1.5">
-                        Мы отправили 6 цифр на ящик. Без кода войти нельзя.
+                        Код был отправлен на ящик
                     </p>
                 </div>
                 <Card className="shadow-xl">
@@ -141,7 +141,7 @@ export default function VerifyEmail({ setPage, initialEmail }: VerifyEmailProps)
                                 onClick={() => setPage('login')}
                                 className="font-bold hover:underline bg-transparent border-none p-0 cursor-pointer"
                             >
-                                Ко входу
+                                Вернуться
                             </button>
                         </p>
                     </form>

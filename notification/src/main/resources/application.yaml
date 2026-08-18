@@ -30,6 +30,10 @@ spring:
 app:
   internal:
     api-key: ${INTERNAL_API_KEY:local-internal-api-key-change-in-prod}
+  vapid:
+    public-key: ${VAPID_PUBLIC_KEY:}
+    private-key: ${VAPID_PRIVATE_KEY:}
+    subject: ${VAPID_SUBJECT:mailto:myraion@inbox.ru}
 
 management:
   server:
