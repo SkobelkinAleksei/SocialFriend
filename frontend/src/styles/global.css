@@ -52,7 +52,7 @@ html, body, #root, button, input, textarea, select {
     }
 }
 
-@media (display-mode: standalone) {
+@media (max-width: 1023px) {
     html, body {
         overscroll-behavior-y: none;
     }
@@ -137,6 +137,11 @@ html, body, #root, button, input, textarea, select {
 .leaflet-control-attribution,
 .leaflet-attribution-flag {
     display: none !important;
+}
+.district-map,
+.district-map .leaflet-container {
+    overscroll-behavior: none;
+    touch-action: pan-x pan-y;
 }
 .district-map .leaflet-control-zoom {
     border: none;

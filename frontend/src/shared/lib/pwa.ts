@@ -1,6 +1,6 @@
-import { showAppConfirm, showAppInfoToast } from '@/shared/utils/appToast';
+import { showAppConfirm } from '@/shared/utils/appToast';
 
-const PWA_CHOICE_KEY = 'myraion.pwa.choice.v2';
+const PWA_CHOICE_KEY = 'myraion.pwa.choice.v3';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -24,29 +24,41 @@ export function isStandaloneDisplay(): boolean {
   return Boolean(media || ios);
 }
 
-function isIos(): boolean {
-  return /iphone|ipad|ipod/i.test(navigator.userAgent);
-}
-
 function isPhoneDevice(): boolean {
   return /iphone|ipod|windows phone/i.test(navigator.userAgent)
     || /android.+mobile/i.test(navigator.userAgent)
     || (/ipad|android/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
 }
 
+function waitForInstallPrompt(ms: number): Promise<BeforeInstallPromptEvent | null> {
+  if (deferredPrompt) return Promise.resolve(deferredPrompt);
+  return new Promise((resolve) => {
+    const timer = window.setTimeout(() => {
+      window.removeEventListener('beforeinstallprompt', onPrompt);
+      resolve(deferredPrompt);
+    }, ms);
+    const onPrompt = () => {
+      window.clearTimeout(timer);
+      resolve(deferredPrompt);
+    };
+    window.addEventListener('beforeinstallprompt', onPrompt, { once: true });
+  });
+}
+
 export async function maybeOfferAddToHome(): Promise<void> {
   if (isStandaloneDisplay()) return;
+  if (isPhoneDevice()) return;
   try {
     if (localStorage.getItem(PWA_CHOICE_KEY)) return;
   } catch {
     return;
   }
-  const phone = isPhoneDevice();
-  const title = phone ? '«На районе» на телефон' : '«На районе» на компьютер';
-  const message = phone ? 'Добавить на экран "Домой"' : 'Добавить ярлык на рабочий стол';
+  const promptEvent = await waitForInstallPrompt(2000);
+  if (!promptEvent) return;
+
   const ok = await showAppConfirm({
-    title,
-    message,
+    title: '«На районе» на компьютер',
+    message: 'Добавить ярлык на рабочий стол',
     confirmText: 'Добавить',
     cancelText: 'Позже',
   });
@@ -56,20 +68,11 @@ export async function maybeOfferAddToHome(): Promise<void> {
     /* ignore */
   }
   if (!ok) return;
-  if (deferredPrompt) {
-    try {
-      await deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
-    } catch {
-      /* ignore */
-    }
-    deferredPrompt = null;
-    return;
+  try {
+    await promptEvent.prompt();
+    await promptEvent.userChoice;
+  } catch {
+    /* ignore */
   }
-  const howTo = phone
-    ? (isIos()
-      ? 'Поделитесь страницей → «На экран Домой».'
-      : 'В меню браузера нажмите «Установить приложение» или «На экран Домой».')
-    : 'В меню браузера нажмите «Установить приложение».';
-  showAppInfoToast(title, howTo);
+  deferredPrompt = null;
 }

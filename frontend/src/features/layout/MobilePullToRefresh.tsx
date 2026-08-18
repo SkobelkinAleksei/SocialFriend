@@ -35,7 +35,7 @@ export default function MobilePullToRefresh() {
     const onStart = (e: TouchEvent) => {
       if (!isCompactViewport() || e.touches.length !== 1) return;
       if (document.querySelector('[data-photo-swipe], [data-post-modal], [data-event-modal]')) return;
-      if ((e.target as Element | null)?.closest?.('[data-photo-swipe], [data-post-modal], [data-event-modal]')) return;
+      if ((e.target as Element | null)?.closest?.('[data-photo-swipe], [data-post-modal], [data-event-modal], [data-district-map], .leaflet-container')) return;
       const touch = e.touches[0];
       if (!isScrollAtTop(e.target)) return;
       startRef.current = { x: touch.clientX, y: touch.clientY };
@@ -45,6 +45,10 @@ export default function MobilePullToRefresh() {
 
     const onMove = (e: TouchEvent) => {
       if (document.querySelector('[data-photo-swipe], [data-post-modal], [data-event-modal]')) {
+        reset();
+        return;
+      }
+      if ((e.target as Element | null)?.closest?.('[data-district-map], .leaflet-container')) {
         reset();
         return;
       }

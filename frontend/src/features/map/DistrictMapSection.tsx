@@ -466,7 +466,7 @@ const DistrictMapSection = forwardRef<any, DistrictMapSectionProps>((
     };
     return (
         <div className="space-y-4">
-            <div className="w-full h-[52dvh] min-h-[280px] md:h-[480px] md:min-h-0 rounded-3xl overflow-hidden border border-[#1C1824]/10 shadow-sm relative z-10">
+            <div data-district-map className="w-full h-[52dvh] min-h-[280px] md:h-[480px] md:min-h-0 rounded-3xl overflow-hidden border border-[#1C1824]/10 shadow-sm relative z-10">
                 <MapContainer
                     center={defaultCenter}
                     zoom={MAP_DEFAULT_ZOOM}
