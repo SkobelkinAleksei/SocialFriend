@@ -1,0 +1,13 @@
+# Только на сервере, вместе с docker-compose.yml:
+# docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d frontend
+#
+# Локальный ПК этот файл не использует.
+
+services:
+  frontend:
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./frontend/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
