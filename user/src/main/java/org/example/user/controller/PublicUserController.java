@@ -8,6 +8,7 @@ import org.example.user.dto.EmailCodeRequest;
 import org.example.user.dto.RegistrationUserDto;
 import org.example.user.dto.ResetPasswordRequest;
 import org.example.user.dto.VerifyEmailRequest;
+import org.example.user.service.EmailOtpMailQueue;
 import org.example.user.service.EmailOtpService;
 import org.example.user.service.UserService;
 import org.springframework.http.ResponseEntity;
