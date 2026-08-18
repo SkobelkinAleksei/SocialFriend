@@ -9,6 +9,7 @@ import org.example.security.dto.JwtResponse;
 import org.example.security.dto.LoginRequest;
 import org.example.security.dto.RefreshTokenRequest;
 import org.example.security.entity.SecurityUserDetails;
+import org.example.security.exception.EmailNotVerifiedException;
 import org.example.security.service.RefreshTokenService;
 import org.example.security.service.SecurityUserService;
 import org.example.security.util.LoginNormalizer;
@@ -61,6 +62,10 @@ public class AuthController {
         }
 
         SecurityUserDetails principal = (SecurityUserDetails) authentication.getPrincipal();
+        if (!securityUserService.isEmailVerified(principal.getId())) {
+            appMetrics.vhodOshibka();
+            throw new EmailNotVerifiedException();
+        }
         securityUserService.resetFailedAttempts(principal.getId());
 
         String accessToken = jwtUtils.generateAccessToken(authentication);

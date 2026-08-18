@@ -17,6 +17,15 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: ${MAIL_SMTP_SSL:true}
+      mail.smtp.starttls.enable: ${MAIL_SMTP_STARTTLS:false}
   jpa:
     hibernate:
       ddl-auto: update
@@ -51,6 +60,9 @@ app:
     comment-base-url: ${APP_COMMENT_URL:http://localhost:8084}
     chat-base-url: ${APP_CHAT_URL:http://localhost:8087}
     event-base-url: ${APP_EVENT_URL:http://localhost:8088}
+  mail:
+    from: ${MAIL_FROM:}
+    log-codes: ${MAIL_LOG_CODES:false}
 
 management:
   server:

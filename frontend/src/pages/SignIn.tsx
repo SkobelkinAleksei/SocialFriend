@@ -30,7 +30,16 @@ export default function SignIn({ setPage, onOpenLegal }: SignInProps) {
 
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
-                if (res.status === 403 || res.status >= 500) {
+                if (data.errorCode === 'EMAIL_NOT_VERIFIED') {
+                    try {
+                        sessionStorage.setItem('myraion.verifyEmail', username.trim().toLowerCase());
+                    } catch {
+                        /* ignore */
+                    }
+                    setPage('verify-email');
+                    return;
+                }
+                if (res.status >= 500) {
                     throw new Error('Нет связи с сервером. Обновите страницу или проверьте Wi‑Fi.');
                 }
                 throw new Error(data.detail || 'Неверный Email или пароль');
@@ -99,6 +108,16 @@ export default function SignIn({ setPage, onOpenLegal }: SignInProps) {
                                 </button>
                             </div>
                         </div>
+
+                        <p className="text-right -mt-1">
+                            <button
+                                type="button"
+                                onClick={() => setPage('forgot-password')}
+                                className={`${theme.accent.text} text-xs font-semibold hover:underline bg-transparent border-none p-0 cursor-pointer`}
+                            >
+                                Забыли пароль?
+                            </button>
+                        </p>
 
                         <Button type="submit" variant="primary" className="w-full mt-2 min-h-11">
                             Войти

@@ -7,7 +7,7 @@
 
 x-spring-env: &spring-env
   TZ: Europe/Moscow
-  JAVA_OPTS: "-XX:MaxRAMPercentage=75.0 -Djava.net.preferIPv4Stack=true"
+  JAVA_OPTS: "-Xmx256m -Xms128m -Djava.net.preferIPv4Stack=true"
   KAFKA_BOOTSTRAP_SERVERS: kafka:29092
   SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: "4"
   SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: "1"
@@ -73,7 +73,7 @@ services:
     depends_on:
       - zookeeper
     ports:
-      - "9092:9092"
+      - "127.0.0.1:9092:9092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -116,6 +116,14 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/social_user_db
       APP_ADMIN_USER_IDS: ${APP_ADMIN_USER_IDS:-}
       APP_ADMIN_EMAILS: ${APP_ADMIN_EMAILS:-}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-465}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_SMTP_SSL: ${MAIL_SMTP_SSL:-true}
+      MAIL_SMTP_STARTTLS: ${MAIL_SMTP_STARTTLS:-false}
+      MAIL_LOG_CODES: ${MAIL_LOG_CODES:-false}
     volumes:
       - user-uploads:/app/uploads/users
 
@@ -241,7 +249,7 @@ services:
         SERVICE: gateway
         MANAGEMENT_PORT: 18080
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     environment:
       <<: *spring-env
     depends_on:

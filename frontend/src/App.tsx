@@ -14,6 +14,8 @@ import Settings from '@/pages/Settings';
 import Events from '@/pages/Events';
 import SignIn from '@/pages/SignIn';
 import SignUp from '@/pages/SignUp';
+import VerifyEmail from '@/pages/VerifyEmail';
+import ForgotPassword from '@/pages/ForgotPassword';
 import LegalDocumentPage from '@/pages/LegalDocumentPage';
 import NeighborProfile from '@/pages/NeighborProfile';
 import Photos from '@/pages/Photos';
@@ -745,9 +747,11 @@ function AppContent() {
   );
 }
 
-function authPageFromPath(): 'login' | 'register' | 'privacy' | 'rules' {
+function authPageFromPath(): 'login' | 'register' | 'verify-email' | 'forgot-password' | 'privacy' | 'rules' {
   const path = window.location.pathname;
   if (path.includes('register')) return 'register';
+  if (path.includes('verify-email')) return 'verify-email';
+  if (path.includes('forgot-password')) return 'forgot-password';
   if (path.includes('privacy')) return 'privacy';
   if (path.includes('rules')) return 'rules';
   return 'login';
@@ -757,7 +761,7 @@ function AuthScreens() {
   const [page, setPage] = useState(authPageFromPath);
   const [legalOverlay, setLegalOverlay] = useState<'privacy' | 'rules' | null>(null);
   const legalDoc = legalOverlay || (page === 'privacy' || page === 'rules' ? page : null);
-  const showForm = page === 'register' || page === 'login';
+  const showForm = page === 'register' || page === 'login' || page === 'verify-email' || page === 'forgot-password';
 
   const closeLegal = () => {
     if (legalOverlay) {
@@ -768,7 +772,7 @@ function AuthScreens() {
   };
 
   const goAuth = (next: string) => {
-    if (next === 'login' || next === 'register' || next === 'privacy' || next === 'rules') {
+    if (next === 'login' || next === 'register' || next === 'verify-email' || next === 'forgot-password' || next === 'privacy' || next === 'rules') {
       setPage(next);
     }
   };
@@ -781,6 +785,10 @@ function AuthScreens() {
           <div hidden={!!legalOverlay}>
             {page === 'register' ? (
                 <SignUp setPage={goAuth} onOpenLegal={setLegalOverlay} />
+            ) : page === 'verify-email' ? (
+                <VerifyEmail setPage={goAuth} />
+            ) : page === 'forgot-password' ? (
+                <ForgotPassword setPage={goAuth} />
             ) : (
                 <SignIn setPage={goAuth} onOpenLegal={setLegalOverlay} />
             )}

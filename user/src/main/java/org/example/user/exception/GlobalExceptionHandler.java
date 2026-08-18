@@ -87,6 +87,19 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(RateLimitedException.class)
+    public ResponseEntity<DefaultErrorMessage> handleRateLimited(
+            RateLimitedException ex, HttpServletRequest request) {
+        return getResponseEntity(
+                "Too Many Requests",
+                ex.getMessage(),
+                HttpStatus.TOO_MANY_REQUESTS.value(),
+                request.getRequestURI(),
+                null,
+                "RATE_LIMITED"
+        );
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<DefaultErrorMessage> handleIllegalArgumentException(
             IllegalArgumentException ex, HttpServletRequest request) {

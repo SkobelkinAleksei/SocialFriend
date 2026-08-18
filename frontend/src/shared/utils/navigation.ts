@@ -8,7 +8,7 @@ export const NAV_PAGE_NEIGHBOR_FRIENDS = 'neighbor-friends';
 export const STATIC_PAGES = [
     'my-page', 'friends', 'chats', 'district',
     'events', 'notifications', 'settings', 'photos',
-    'login', 'register', 'privacy', 'rules',
+    'login', 'register', 'verify-email', 'forgot-password', 'privacy', 'rules',
 ] as const;
 
 export type AppOverlay = 'post' | 'photo' | 'event-requests' | 'event-details';

@@ -31,6 +31,13 @@ public class GlobalExceptionHandler {
                 fieldErrors, "VALIDATION_ERROR");
     }
 
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    public ResponseEntity<DefaultErrorMessage> handleEmailNotVerified(
+            EmailNotVerifiedException ex, HttpServletRequest request) {
+        return build("Forbidden", ex.getMessage(), HttpStatus.FORBIDDEN, request.getRequestURI(),
+                null, "EMAIL_NOT_VERIFIED");
+    }
+
     @ExceptionHandler(LockedException.class)
     public ResponseEntity<DefaultErrorMessage> handleLocked(
             LockedException ex, HttpServletRequest request) {

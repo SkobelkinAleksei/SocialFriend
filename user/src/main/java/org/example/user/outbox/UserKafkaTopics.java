@@ -8,6 +8,7 @@ public final class UserKafkaTopics {
     public static final String SETTINGS_UPDATED = "user-settings-updated-topic";
     public static final String ACCOUNT_STATUS_CHANGED = "user-account-status-changed";
     public static final String PLATFORM_ROLE_CHANGED = "user-platform-role-changed";
+    public static final String EMAIL_VERIFIED = "user-email-verified";
 
     private UserKafkaTopics() {
     }

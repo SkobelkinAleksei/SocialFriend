@@ -149,7 +149,12 @@ export default function SignUp({ setPage, onOpenLegal }: SignUpProps) {
                     : null;
                 throw new Error(fieldMsg || data.detail || data.message || 'Ошибка регистрации');
             }
-            setPage('login');
+            try {
+                sessionStorage.setItem('myraion.verifyEmail', payload.email);
+            } catch {
+                /* ignore */
+            }
+            setPage('verify-email');
         } catch (err: any) {
             setError(err.message);
         }

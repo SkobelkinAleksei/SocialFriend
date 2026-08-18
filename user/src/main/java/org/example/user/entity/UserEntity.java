@@ -104,6 +104,11 @@ public class UserEntity {
     @Column(name = "terms_version", length = 32)
     private String termsVersion;
 
+    /** Старые аккаунты без колонки считаем подтверждёнными. Новая регистрация ставит false. */
+    @Builder.Default
+    @Column(name = "email_verified", nullable = false, columnDefinition = "boolean not null default true")
+    private Boolean emailVerified = Boolean.TRUE;
+
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, optional = false)
     private UserSettingsEntity settings;
 

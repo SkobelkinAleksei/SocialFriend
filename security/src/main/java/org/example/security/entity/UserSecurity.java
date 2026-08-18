@@ -40,6 +40,9 @@ public class UserSecurity {
     @Column(name = "platform_role", length = 20)
     private String platformRole;
 
+    @Column(name = "email_verified", columnDefinition = "boolean default true")
+    private Boolean emailVerified = Boolean.TRUE;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, columnDefinition = "TIMESTAMP(0)")
     private LocalDateTime createdAt;
@@ -47,6 +50,10 @@ public class UserSecurity {
     @UpdateTimestamp
     @Column(name = "updated_at", columnDefinition = "TIMESTAMP(0)")
     private LocalDateTime updatedAt;
+
+    public boolean isEmailVerified() {
+        return emailVerified == null || Boolean.TRUE.equals(emailVerified);
+    }
 
     public boolean isLockedNow() {
         return lockedUntil != null && lockedUntil.isAfter(Instant.now());

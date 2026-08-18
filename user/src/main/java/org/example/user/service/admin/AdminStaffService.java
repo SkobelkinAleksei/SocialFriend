@@ -117,6 +117,7 @@ public class AdminStaffService {
         userEntity.setBio("Админ района");
         userEntity.setAccountStatus(AccountStatus.ACTIVE);
         userEntity.setPlatformRole(PlatformRole.ADMIN);
+        userEntity.setEmailVerified(true);
         UserSettingsEntity settings = UserSettingsEntity.builder()
                 .user(userEntity)
                 .searchRadius(1.0)
@@ -144,7 +145,8 @@ public class AdminStaffService {
                         saved.getEmail(),
                         saved.getPassword(),
                         saved.getTimeStamp(),
-                        PlatformRole.ADMIN.name()
+                        PlatformRole.ADMIN.name(),
+                        true
                 )
         );
         log.info("[Admin] Создан админ userId={} email={} actorId={}", saved.getId(), saved.getEmail(), actorId);

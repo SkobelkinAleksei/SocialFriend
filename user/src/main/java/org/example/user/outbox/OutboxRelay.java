@@ -3,6 +3,7 @@ package org.example.user.outbox;
 import com.example.common.kafka.UserAccountStatusChangedEvent;
 import com.example.common.kafka.UserEmailUpdatedEvent;
 import com.example.common.kafka.UserPasswordUpdatedEvent;
+import com.example.common.kafka.UserEmailVerifiedEvent;
 import com.example.common.kafka.UserPlatformRoleChangedEvent;
 import com.example.common.kafka.UserRegisteredEvent;
 import com.example.common.kafka.UserSettingsUpdatedEvent;
@@ -36,7 +37,8 @@ public class OutboxRelay {
             UserPasswordUpdatedEvent.class.getName(),
             UserSettingsUpdatedEvent.class.getName(),
             UserAccountStatusChangedEvent.class.getName(),
-            UserPlatformRoleChangedEvent.class.getName()
+            UserPlatformRoleChangedEvent.class.getName(),
+            UserEmailVerifiedEvent.class.getName()
     );
 
     private static final Map<String, Class<?>> TYPE_BY_NAME = Map.of(
@@ -45,7 +47,8 @@ public class OutboxRelay {
             UserPasswordUpdatedEvent.class.getName(), UserPasswordUpdatedEvent.class,
             UserSettingsUpdatedEvent.class.getName(), UserSettingsUpdatedEvent.class,
             UserAccountStatusChangedEvent.class.getName(), UserAccountStatusChangedEvent.class,
-            UserPlatformRoleChangedEvent.class.getName(), UserPlatformRoleChangedEvent.class
+            UserPlatformRoleChangedEvent.class.getName(), UserPlatformRoleChangedEvent.class,
+            UserEmailVerifiedEvent.class.getName(), UserEmailVerifiedEvent.class
     );
 
     private final OutboxEventRepository outboxEventRepository;

@@ -30,7 +30,21 @@ public class UserRegisteredEvent {
     /** USER или ADMIN. Старые события без поля security читает как USER. */
     private String platformRole;
 
+    /**
+     * null в старых событиях = почта уже считалась подтверждённой.
+     * Новая регистрация с района шлёт false.
+     */
+    private Boolean emailVerified;
+
     public UserRegisteredEvent(Long id, String email, String passwordHash, LocalDateTime createdAt) {
-        this(id, email, passwordHash, createdAt, "USER");
+        this(id, email, passwordHash, createdAt, "USER", null);
+    }
+
+    public UserRegisteredEvent(Long id, String email, String passwordHash, LocalDateTime createdAt, String platformRole) {
+        this(id, email, passwordHash, createdAt, platformRole, null);
+    }
+
+    public boolean emailVerifiedOrLegacy() {
+        return emailVerified == null || Boolean.TRUE.equals(emailVerified);
     }
 }

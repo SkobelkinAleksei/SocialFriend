@@ -1,6 +1,7 @@
 package org.example.security.config;
 
 import com.example.common.kafka.UserAccountStatusChangedEvent;
+import com.example.common.kafka.UserEmailVerifiedEvent;
 import com.example.common.kafka.UserEmailUpdatedEvent;
 import com.example.common.kafka.UserPasswordUpdatedEvent;
 import com.example.common.kafka.UserPlatformRoleChangedEvent;
@@ -74,5 +75,15 @@ public class SecurityKafkaListener {
         log.info("[SecurityKafkaListener] Роль userId={} → {}", event.getUserId(), event.getRole());
         userSecurityService.applyPlatformRole(event.getUserId(), event.getRole());
         refreshTokenService.revokeAllForUser(event.getUserId());
+    }
+
+    @KafkaListener(
+            topics = "user-email-verified",
+            groupId = "security-group",
+            containerFactory = "kafkaListenerContainerFactory"
+    )
+    public void listenEmailVerified(UserEmailVerifiedEvent event) {
+        log.info("[SecurityKafkaListener] Почта подтверждена userId={}", event.getUserId());
+        userSecurityService.markEmailVerified(event.getUserId());
     }
 }

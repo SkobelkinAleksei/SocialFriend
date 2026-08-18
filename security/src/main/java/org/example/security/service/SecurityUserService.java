@@ -74,6 +74,7 @@ public class SecurityUserService implements UserDetailsService {
         userSecurity.setEnabled(true);
         userSecurity.setAccountStatus("ACTIVE");
         userSecurity.setPlatformRole("ADMIN".equalsIgnoreCase(event.getPlatformRole()) ? "ADMIN" : "USER");
+        userSecurity.setEmailVerified(event.emailVerifiedOrLegacy());
         try {
             repository.saveAndFlush(userSecurity);
         } catch (DataIntegrityViolationException e) {
@@ -118,6 +119,17 @@ public class SecurityUserService implements UserDetailsService {
         UserSecurity user = requireUser(userId);
         user.setPlatformRole("ADMIN".equalsIgnoreCase(role) ? "ADMIN" : "USER");
         repository.save(user);
+    }
+
+    @Transactional
+    public void markEmailVerified(Long userId) {
+        UserSecurity user = requireUser(userId);
+        user.setEmailVerified(true);
+        repository.save(user);
+    }
+
+    public boolean isEmailVerified(Long userId) {
+        return repository.findById(userId).map(UserSecurity::isEmailVerified).orElse(true);
     }
 
     public String loadPlatformRole(Long userId) {
