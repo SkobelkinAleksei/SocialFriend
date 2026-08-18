@@ -35,7 +35,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -60,7 +59,7 @@ public class UserServiceImpl implements UserService {
     private final OutboxService outboxService;
     private final PasswordEncoder passwordEncoder;
     private final AppMetrics appMetrics;
-    private final ApplicationEventPublisher eventPublisher;
+    private final EmailOtpService emailOtpService;
 
     @Value("${app.services.friend-base-url:http://localhost:8082}")
     private String friendBaseUrl;
@@ -140,7 +139,7 @@ public class UserServiceImpl implements UserService {
         outboxService.enqueue(UserKafkaTopics.REGISTERED, saved.getId(), event);
         appMetrics.registraciyaUspeh();
         log.info("[Регистрация] Новый пользователь userId={}", saved.getId());
-        eventPublisher.publishEvent(new UserSignedUpEvent(saved.getEmail()));
+        emailOtpService.sendVerifyCodeForNewUser(saved);
         return userDto;
     }
 

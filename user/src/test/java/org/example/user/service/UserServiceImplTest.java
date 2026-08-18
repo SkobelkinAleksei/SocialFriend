@@ -81,7 +81,7 @@ public class UserServiceImplTest {
     @Mock
     private AppMetrics appMetrics;
     @Mock
-    private org.springframework.context.ApplicationEventPublisher eventPublisher;
+    private EmailOtpService emailOtpService;
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -119,7 +119,7 @@ public class UserServiceImplTest {
             assertEquals("$2a$new", mapped.getPassword());
             verify(outboxService).enqueue(eq(UserKafkaTopics.REGISTERED), eq(11L), any(UserRegisteredEvent.class));
             verify(appMetrics).registraciyaUspeh();
-            verify(eventPublisher).publishEvent(any());
+            verify(emailOtpService).sendVerifyCodeForNewUser(saved);
         }
 
         @Test
@@ -134,6 +134,7 @@ public class UserServiceImplTest {
                     "Чтобы создать аккаунт, примите Правила сообщества и Политику конфиденциальности.",
                     ex.getMessage());
             verify(userRepository, never()).saveAndFlush(any());
+            verify(emailOtpService, never()).sendVerifyCodeForNewUser(any());
         }
 
         @Test

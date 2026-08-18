@@ -8,6 +8,7 @@ import org.example.user.entity.EmailOtpEntity;
 import org.example.user.entity.EmailOtpPurpose;
 import org.example.user.entity.UserEntity;
 import org.example.user.exception.RateLimitedException;
+import org.example.user.mail.MailOutboxService;
 import org.example.user.outbox.OutboxService;
 import org.example.user.outbox.UserKafkaTopics;
 import org.example.user.repository.EmailOtpRepository;
@@ -32,7 +33,7 @@ public class EmailOtpService {
     private final EmailOtpRepository otpRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final NeighborhoodMailService mailService;
+    private final MailOutboxService mailOutboxService;
     private final OutboxService outboxService;
 
     @Transactional
@@ -51,7 +52,23 @@ public class EmailOtpService {
             log.warn("[Почта] Код не шлём: почта уже подтверждена {}", email);
             return;
         }
-        log.info("[Почта] Отправляем код подтверждения на {}", email);
+        enqueueVerify(user);
+    }
+
+    @Transactional
+    public void sendVerifyCodeForNewUser(UserEntity user) {
+        if (user == null || !user.isActiveAccount()) {
+            throw new IllegalStateException("Нельзя отправить код: пользователь не сохранён");
+        }
+        if (Boolean.TRUE.equals(user.getEmailVerified())) {
+            return;
+        }
+        enqueueVerify(user);
+    }
+
+    private void enqueueVerify(UserEntity user) {
+        String email = normalize(user.getEmail());
+        log.info("[Почта] Код подтверждения ставим в очередь на {}", email);
         issue(email, EmailOtpPurpose.VERIFY,
                 "Код подтверждения — На районе",
                 "Ваш код подтверждения почты в «На районе»: %s\n\nДействует 20 минут. Если это не вы — просто удалите письмо.");
@@ -125,7 +142,7 @@ public class EmailOtpService {
         otp.setExpiresAt(now.plusMinutes(TTL_MINUTES));
         otp.setAttempts(0);
         otpRepository.save(otp);
-        mailService.sendCode(email, subject, bodyTemplate.formatted(code), code);
+        mailOutboxService.enqueue(email, subject, bodyTemplate.formatted(code), otp.getExpiresAt());
     }
 
     private void consume(String email, EmailOtpPurpose purpose, String code) {

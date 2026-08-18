@@ -4,6 +4,7 @@ import org.example.user.entity.EmailOtpEntity;
 import org.example.user.entity.EmailOtpPurpose;
 import org.example.user.entity.UserEntity;
 import org.example.user.exception.RateLimitedException;
+import org.example.user.mail.MailOutboxService;
 import org.example.user.outbox.OutboxService;
 import org.example.user.repository.EmailOtpRepository;
 import org.example.user.repository.UserRepository;
@@ -40,7 +41,7 @@ class EmailOtpServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
     @Mock
-    private NeighborhoodMailService mailService;
+    private MailOutboxService mailOutboxService;
     @Mock
     private OutboxService outboxService;
 
@@ -54,7 +55,7 @@ class EmailOtpServiceTest {
 
         service.sendResetCode("ghost@ex.ru");
 
-        verify(mailService, never()).sendCode(any(), any(), any(), any());
+        verify(mailOutboxService, never()).enqueue(any(), any(), any(), any());
         verify(otpRepository, never()).save(any());
     }
 
@@ -70,7 +71,7 @@ class EmailOtpServiceTest {
                 eq("anna@example.com"), eq(EmailOtpPurpose.VERIFY))).thenReturn(Optional.of(last));
 
         assertThrows(RateLimitedException.class, () -> service.sendVerifyCode("anna@example.com"));
-        verify(mailService, never()).sendCode(any(), any(), any(), any());
+        verify(mailOutboxService, never()).enqueue(any(), any(), any(), any());
     }
 
     @Test
@@ -88,7 +89,7 @@ class EmailOtpServiceTest {
         ArgumentCaptor<EmailOtpEntity> captor = ArgumentCaptor.forClass(EmailOtpEntity.class);
         verify(otpRepository).save(captor.capture());
         assertTrue(captor.getValue().getCodeHash().startsWith("$"));
-        verify(mailService).sendCode(eq("anna@example.com"), any(), any(), any());
+        verify(mailOutboxService).enqueue(eq("anna@example.com"), any(), any(), any());
     }
 
     @Test
@@ -100,7 +101,22 @@ class EmailOtpServiceTest {
 
         service.sendVerifyCode("anna@example.com");
 
-        verify(mailService, never()).sendCode(any(), any(), any(), any());
+        verify(mailOutboxService, never()).enqueue(any(), any(), any(), any());
         verify(otpRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Новый пользователь: код в очередь без повторного поиска по email")
+    void newUserEnqueuesWithoutLookup() {
+        UserEntity user = UserFixtures.user(11L);
+        user.setEmailVerified(false);
+        when(otpRepository.findFirstByEmailAndPurposeAndUsedAtIsNullOrderByCreatedAtDesc(any(), any()))
+                .thenReturn(Optional.empty());
+        when(passwordEncoder.encode(anyString())).thenReturn("$hash");
+
+        service.sendVerifyCodeForNewUser(user);
+
+        verify(userRepository, never()).findByEmailIgnoreCase(any());
+        verify(mailOutboxService).enqueue(eq("anna@example.com"), any(), any(), any());
     }
 }
