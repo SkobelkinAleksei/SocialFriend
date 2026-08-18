@@ -57,22 +57,22 @@ export default function MyPostSection({ onPostCreated }: MyPostSectionProps) {
                 <form onSubmit={handleCreatePost} className="space-y-3">
                     <div className="flex gap-3 items-start">
                         <img src={getAvatarUrl(user?.id, user?.avatarUrl)} alt="" className="w-10 h-10 rounded-full object-cover border border-slate-100" />
-                        <div className="flex-1 min-w-0">
+                        <div className="relative flex-1 min-w-0">
                         <textarea
                             value={newPostContent}
                             onChange={(e) => setNewPostContent(e.target.value.slice(0, POST_MAX))}
                             placeholder="Написать пост на районе..."
                             maxLength={POST_MAX}
-                            className="w-full min-h-[80px] p-3 bg-[#EFEAF6] border border-[#1C1824]/10 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#5C4B7A]/20 focus:border-[#5C4B7A]/40 transition resize-none placeholder:text-[#8A8494] text-[#1C1824]"
+                            className="w-full min-h-[80px] p-3 pb-7 bg-[#EFEAF6] border border-[#1C1824]/10 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#5C4B7A]/20 focus:border-[#5C4B7A]/40 transition resize-none placeholder:text-[#8A8494] text-[#1C1824]"
                         />
-                        <div className="mt-1 flex items-center justify-between gap-2 px-1">
-                            <span className="text-[11px] text-[#8A8494]">
-                                {newPostContent.trim().length > 0 && newPostContent.trim().length < POST_MIN
-                                    ? `Минимум ${POST_MIN} символов`
-                                    : ''}
+                        {newPostContent.trim().length > 0 && newPostContent.trim().length < POST_MIN && (
+                            <span className="pointer-events-none absolute bottom-2.5 left-3 text-[11px] text-[#8A8494]">
+                                Минимум {POST_MIN} символов
                             </span>
-                            <span className="text-[11px] text-slate-400 tabular-nums">{postLength}/{POST_MAX}</span>
-                        </div>
+                        )}
+                        <span className="pointer-events-none absolute bottom-2.5 right-3 text-[11px] text-slate-400 tabular-nums">
+                            {postLength}/{POST_MAX}
+                        </span>
                         </div>
                     </div>
                     {photos.count > 0 && (
