@@ -19,6 +19,7 @@ import GroupChatSection from '@/features/chat/GroupChatSection';
 import PersonalChatSection from '@/features/chat/PersonalChatSection';
 import CreatePersonalGroupModal from '@/features/chat/CreatePersonalGroupModal';
 import ChatListSwipeRow from '@/features/chat/ChatListSwipeRow';
+import ChatVoiceMiniBar from '@/features/chat/ChatVoiceMiniBar';
 import { getAvatarUrl, persistOpenChat, clearPersistedOpenChat, readPersistedOpenChat, scheduleClearPersistedOpenChatIfVisible, cancelScheduledClearPersistedOpenChat, persistChatsSidebarTab, readPersistedChatsSidebarTab, NAV_EVENT_OPEN_CHAT, readHistoryState, isCompactViewport } from '@/shared/utils/navigation';
 import { useAppBackHandler } from '@/shared/hooks/useAppBackHandler';
 import { readChatDraft, subscribeChatDrafts } from '@/features/chat/chatDrafts';
@@ -536,6 +537,7 @@ export default function Chats({ pageActive = true }: { pageActive?: boolean }) {
               <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск чата…" className={`w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border ${theme.surface.border} rounded-xl focus:outline-none focus:ring-2 ${theme.accent.ring} focus:bg-white transition`} />
             </div>
           </div>
+          <ChatVoiceMiniBar className="md:hidden px-3 pt-2 pb-1 shrink-0" />
           <div className="flex-1 overflow-y-auto">
             {sidebarTab === 'events' ? (
                 eventRooms.length === 0 ? (

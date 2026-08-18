@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import api, { uploadChatPhoto, uploadChatVoice } from '@/shared/lib/api';
-import Button from '@/shared/ui/Button';
 import { theme } from '@/shared/ui/theme';
 import { useChat, formatSidebarMessage, mediaHintFromMessage, resolveMessageMedia, mapBundledForwardQuotes, isForwardQuoteCaption, isPersonalGroupRoom } from '@/features/chat/ChatContext';
 import { useAuth } from '@/shared/context/AuthContext';
@@ -48,7 +47,8 @@ import ChatFileBubble from '@/features/chat/ChatFileBubble';
 import { voiceQueueFromMessages } from '@/features/chat/chatVoicePlayer';
 import { useChatMediaAttach } from '@/features/chat/useChatMediaAttach';
 import { useChatPasteImages } from '@/features/chat/useChatPasteImages';
-import { ChatPendingStrip, ChatPaperclipButton } from '@/features/chat/ChatComposerExtras';
+import { ChatPendingStrip, ChatPaperclipButton, COMPOSER_BTN_MUTED, COMPOSER_BTN_SEND, COMPOSER_ICON } from '@/features/chat/ChatComposerExtras';
+import ChatVoiceMiniBar from '@/features/chat/ChatVoiceMiniBar';
 import { ChatMicButton, ChatVoiceRecordingBar, useChatVoiceRecorder } from '@/features/chat/useChatVoiceRecorder';
 import { publishForwardToChats } from '@/shared/utils/shareToChat';
 import ChatEmojiPicker, { insertEmojiAtCursor } from '@/features/chat/ChatEmojiPicker';
@@ -1599,6 +1599,7 @@ export default function GroupChatSection({
                 </>
             )}
 
+            <ChatVoiceMiniBar className="md:hidden px-3 pt-2 pb-1 shrink-0" />
             {searchOpen && (
                 <ChatSearchBar
                     messages={actions.messages}
@@ -1956,7 +1957,7 @@ export default function GroupChatSection({
                 </div>
             )}
 
-            <div className={`myraion-chat-composer px-4 py-3 border-t ${theme.surface.border} ${theme.surface.card} shrink-0`}>
+            <div className={`myraion-chat-composer px-2.5 py-2 md:px-4 md:py-2.5 border-t ${theme.surface.border} ${theme.surface.card} shrink-0`}>
                 <ChatPendingStrip media={chatMedia} />
                 {voice.mode !== 'idle' ? (
                     <ChatVoiceRecordingBar
@@ -1977,16 +1978,16 @@ export default function GroupChatSection({
                         onTrim={voice.changeTrim}
                     />
                 ) : (
-                    <div className="flex items-end gap-2">
+                    <div className="flex items-end gap-0.5 md:gap-1">
                         <ChatPaperclipButton media={chatMedia} disabled={actions.editingId !== null} />
                         <button
                             type="button"
-                            className="p-2 rounded-lg text-slate-500 hover:bg-slate-100"
+                            className={COMPOSER_BTN_MUTED}
                             title="Голосование"
                             disabled={actions.editingId !== null}
                             onClick={() => setPollModalOpen(true)}
                         >
-                            <BarChart2 className="w-4 h-4" />
+                            <BarChart2 className={COMPOSER_ICON} />
                         </button>
                         <div className="relative flex-1 min-w-0">
                         {(() => {
@@ -2032,10 +2033,10 @@ export default function GroupChatSection({
                         <div className="relative">
                             <button
                                 type="button"
-                                className={`p-2 rounded-lg ${emojiOpen ? 'bg-slate-100 text-[#5C4B7A]' : 'text-slate-500 hover:bg-slate-100'}`}
+                                className={`${COMPOSER_BTN_MUTED} ${emojiOpen ? 'bg-slate-100 text-[#5C4B7A]' : ''}`}
                                 onClick={() => setEmojiOpen((v) => !v)}
                             >
-                                <Smile className="w-4 h-4" />
+                                <Smile className={COMPOSER_ICON} />
                             </button>
                             {emojiOpen && (
                                 <>
@@ -2048,7 +2049,14 @@ export default function GroupChatSection({
                             )}
                         </div>
                         {actions.draft.trim() || chatMedia.count > 0 || actions.forwardBuffer.length > 0 || actions.editingId ? (
-                            <Button onClick={send} disabled={actions.editingId ? false : ((!actions.draft.trim() && chatMedia.count === 0 && actions.forwardBuffer.length === 0) || (chatMedia.count > 0 && !chatMedia.allReady))} size="md">{actions.editingId ? <Check className="w-4 h-4" /> : <Send className="w-4 h-4" />}</Button>
+                            <button
+                                type="button"
+                                onClick={send}
+                                disabled={actions.editingId ? false : ((!actions.draft.trim() && chatMedia.count === 0 && actions.forwardBuffer.length === 0) || (chatMedia.count > 0 && !chatMedia.allReady))}
+                                className={COMPOSER_BTN_SEND}
+                            >
+                                {actions.editingId ? <Check className={COMPOSER_ICON} /> : <Send className={COMPOSER_ICON} />}
+                            </button>
                         ) : (
                             <ChatMicButton
                                 disabled={actions.editingId !== null || voice.busy}

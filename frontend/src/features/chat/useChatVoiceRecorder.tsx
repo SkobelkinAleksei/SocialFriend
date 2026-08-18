@@ -575,10 +575,10 @@ export function ChatMicButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="p-2.5 rounded-lg text-slate-500 hover:bg-[#EDE6F5] hover:text-[#5C4B7A] transition disabled:opacity-40"
+      className="w-10 h-10 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-[#5C4B7A] transition disabled:opacity-40 shrink-0"
       title="Голосовое сообщение"
     >
-      <Mic className="w-4 h-4" />
+      <Mic className="w-5 h-5" />
     </button>
   );
 }

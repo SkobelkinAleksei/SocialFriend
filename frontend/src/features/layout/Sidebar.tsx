@@ -3,6 +3,7 @@ import { User, Users, MessageCircle, MapPin, Settings, Calendar, LogOut, Bell } 
 import { theme } from '@/shared/ui/theme';
 import { useAuth } from '@/shared/context/AuthContext';
 import { useChat } from '@/features/chat/ChatContext';
+import ChatVoiceMiniBar from '@/features/chat/ChatVoiceMiniBar';
 import { useNotification } from '@/shared/context/NotificationContext';
 import { getAvatarUrl } from '@/shared/utils/navigation';
 import { presenceLabel } from '@/shared/utils/presence';
@@ -124,6 +125,10 @@ export default function Sidebar({ page, setPage }: SidebarProps) {
             );
           })}
         </nav>
+
+        {page === 'chats' && (
+          <ChatVoiceMiniBar className="px-3 pb-2 shrink-0" />
+        )}
 
         {/* Футер сайдбара */}
         <div className="p-4 border-t border-[#1A1916]/10 space-y-3">

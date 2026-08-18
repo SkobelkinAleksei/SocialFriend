@@ -5,6 +5,12 @@ import type { useChatMediaAttach } from '@/features/chat/useChatMediaAttach';
 
 type Media = ReturnType<typeof useChatMediaAttach>;
 
+export const COMPOSER_BTN =
+  'w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition disabled:opacity-40';
+export const COMPOSER_BTN_MUTED = `${COMPOSER_BTN} text-slate-500 hover:bg-slate-100 hover:text-[#5C4B7A]`;
+export const COMPOSER_BTN_SEND = `${COMPOSER_BTN} bg-[#5C4B7A] text-white hover:bg-[#4A3C66]`;
+export const COMPOSER_ICON = 'w-5 h-5';
+
 export function ChatPendingStrip({ media }: { media: Media }) {
   if (media.count === 0) return null;
   return (
@@ -63,15 +69,15 @@ export function ChatPaperclipButton({ media, disabled }: { media: Media; disable
         type="button"
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
-        className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-40"
+        className={COMPOSER_BTN_MUTED}
         title="Прикрепить"
       >
-        <Paperclip className="w-4 h-4" />
+        <Paperclip className={COMPOSER_ICON} />
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 bottom-11 z-50 w-40 bg-white border border-slate-200/80 shadow-xl rounded-xl py-1.5 animate-fadeIn">
+          <div className="absolute left-0 bottom-full mb-1 z-50 w-40 bg-white border border-slate-200/80 shadow-xl rounded-xl py-1.5 animate-fadeIn">
             <button
               type="button"
               onClick={() => { setOpen(false); media.openPhotoPicker(); }}

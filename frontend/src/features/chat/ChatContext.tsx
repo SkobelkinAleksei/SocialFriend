@@ -10,8 +10,6 @@ import { getViewingChat } from '@/shared/lib/viewingChat';
 // ИМПОРТ ДЛЯ ПРОДАКШНА: Нативно подключаем модалку деталей в глобальный слой
 import EventDetailsModal from '@/features/events/EventDetailsModal';
 import CreateEventDrawer from '@/features/events/CreateEventDrawer';
-import ChatVoiceMiniBar from '@/features/chat/ChatVoiceMiniBar';
-
 function parseStompJson(raw: string): any | null {
     try {
         return JSON.parse(raw);
@@ -733,7 +731,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     return (
         <ChatContext.Provider value={{ eventRooms, setEventRooms, personalGroups, setPersonalGroups, chats, setChats, chatsCount, setChatsCount, stompClient, refreshEventRooms }}>
             {children}
-            <ChatVoiceMiniBar />
             {sharedEventData && (
                 <EventDetailsModal
                     event={sharedEventData}
