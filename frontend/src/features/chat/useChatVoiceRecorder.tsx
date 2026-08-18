@@ -8,7 +8,32 @@ type VoiceMode = 'idle' | 'recording' | 'preview';
 
 const MAX_MS = 5 * 60 * 1000;
 const MIN_MS = 800;
-const PEAKS = 56;
+const MAX_PEAK_SAMPLES = 720;
+
+function packPeaks(peaks: number[], extra: number): number[] {
+  const next = [...peaks, extra];
+  if (next.length <= MAX_PEAK_SAMPLES) return next;
+  const packed: number[] = [];
+  for (let i = 0; i < next.length; i += 2) {
+    packed.push(Math.max(next[i], next[i + 1] ?? 0));
+  }
+  return packed;
+}
+
+function resamplePeaks(peaks: number[], count: number): number[] {
+  if (count <= 0) return [];
+  if (!peaks.length) return Array.from({ length: count }, () => 0.12);
+  if (peaks.length === count) return peaks;
+  const out: number[] = [];
+  for (let i = 0; i < count; i++) {
+    const from = Math.floor((i * peaks.length) / count);
+    const to = Math.max(from + 1, Math.floor(((i + 1) * peaks.length) / count));
+    let max = 0;
+    for (let j = from; j < to; j++) max = Math.max(max, peaks[j] || 0);
+    out.push(Math.max(0.08, max));
+  }
+  return out;
+}
 
 function pickMime(): string {
   const options = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
@@ -161,11 +186,7 @@ export function useChatVoiceRecorder(onRecorded: (blob: Blob, durationSec: numbe
             sum += v * v;
           }
           const rms = Math.min(1, Math.sqrt(sum / data.length) * 3.4);
-          setPeaks((prev) => {
-            const next = prev.length >= PEAKS ? prev.slice(1) : [...prev];
-            next.push(Math.max(0.08, rms));
-            return next;
-          });
+          setPeaks((prev) => packPeaks(prev, Math.max(0.08, rms)));
         }, 90);
       }
       rec.start(120);
@@ -343,11 +364,26 @@ function VoiceWave({
   onSeek?: (ratio: number) => void;
   onTrim?: (start: number, end: number) => void;
 }) {
-  const bars = peaks.length ? peaks : Array.from({ length: 24 }, () => 0.18);
   const start = trimStart ?? 0;
   const end = trimEnd ?? 1;
   const dragRef = useRef<'start' | 'end' | 'seek' | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const [barCount, setBarCount] = useState(64);
+
+  useEffect(() => {
+    const node = rootRef.current;
+    if (!node) return;
+    const update = () => {
+      const width = node.clientWidth || 0;
+      setBarCount(Math.max(36, Math.min(160, Math.floor(width / 2.4))));
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  const bars = resamplePeaks(peaks, barCount);
 
   const ratioFromEvent = (clientX: number) => {
     const rect = rootRef.current?.getBoundingClientRect();
@@ -376,13 +412,13 @@ function VoiceWave({
   return (
     <div
       ref={rootRef}
-      className="relative flex-1 h-8 flex items-center gap-[2px] min-w-0 select-none"
+      className="relative flex-1 h-8 flex items-center min-w-0 select-none"
       onPointerDown={(event) => {
         if (!interactive) return;
         event.preventDefault();
         const ratio = ratioFromEvent(event.clientX);
-        const nearStart = Math.abs(ratio - start) < 0.04;
-        const nearEnd = Math.abs(ratio - end) < 0.04;
+        const nearStart = Math.abs(ratio - start) < 0.035;
+        const nearEnd = Math.abs(ratio - end) < 0.035;
         if (onTrim && (nearStart || nearEnd)) {
           dragRef.current = nearEnd && (!nearStart || Math.abs(ratio - end) <= Math.abs(ratio - start)) ? 'end' : 'start';
           if (dragRef.current === 'start') onTrim(ratio, end);
@@ -393,23 +429,25 @@ function VoiceWave({
         onSeek?.(ratio);
       }}
     >
-      {bars.map((value, i) => {
-        const pos = bars.length > 1 ? i / (bars.length - 1) : 0;
-        const inRange = pos >= start && pos <= end;
-        const played = (progress ?? -1) >= pos && inRange;
-        const h = 4 + value * 22;
-        return (
-          <span
-            key={i}
-            className={`w-[2.5px] rounded-full origin-center ${played ? 'bg-[#5C4B7A]' : inRange ? 'bg-[#5C4B7A]/55' : 'bg-[#5C4B7A]/18'}`}
-            style={{ height: `${h}px` }}
-          />
-        );
-      })}
+      <div className="absolute inset-0 flex items-center justify-between gap-px">
+        {bars.map((value, i) => {
+          const pos = bars.length > 1 ? i / (bars.length - 1) : 0;
+          const inRange = pos >= start && pos <= end;
+          const played = (progress ?? -1) >= pos && inRange;
+          const h = 4 + value * 22;
+          return (
+            <span
+              key={i}
+              className={`rounded-full ${played ? 'bg-[#5C4B7A]' : inRange ? 'bg-[#5C4B7A]/70' : 'bg-[#5C4B7A]/20'}`}
+              style={{ width: 2, height: `${h}px`, flex: '1 1 0', maxWidth: 3, minWidth: 1 }}
+            />
+          );
+        })}
+      </div>
       {interactive && (
         <>
-          <span className="absolute top-0 bottom-0 w-[3px] rounded-full bg-[#5C4B7A]" style={{ left: `${start * 100}%` }} />
-          <span className="absolute top-0 bottom-0 w-[3px] rounded-full bg-[#5C4B7A]" style={{ left: `${end * 100}%` }} />
+          <span className="absolute top-0.5 bottom-0.5 w-[3px] rounded-full bg-[#5C4B7A] pointer-events-none" style={{ left: `${start * 100}%` }} />
+          <span className="absolute top-0.5 bottom-0.5 w-[3px] rounded-full bg-[#5C4B7A] pointer-events-none" style={{ left: `calc(${end * 100}% - 3px)` }} />
         </>
       )}
     </div>
@@ -465,7 +503,7 @@ export function ChatVoiceRecordingBar({
       >
         <Trash2 className="w-4 h-4" />
       </button>
-      <div className="flex-1 flex items-center gap-2.5 rounded-full px-3 py-2 bg-[#F4EEF8] min-w-0">
+      <div className="flex-1 flex items-center gap-2.5 rounded-full px-3 py-2 bg-[#E8E0F2] min-w-0">
         {mode === 'recording' ? (
           <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
         ) : (

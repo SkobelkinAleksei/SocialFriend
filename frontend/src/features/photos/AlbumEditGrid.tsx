@@ -12,6 +12,53 @@ function moveAlbum(list: PhotoAlbum[], fromId: number, toId: number): PhotoAlbum
   return next;
 }
 
+type LayoutBox = { left: number; top: number; right: number; bottom: number; width: number; height: number };
+
+function boxOf(el: HTMLElement): LayoutBox {
+  const rect = el.getBoundingClientRect();
+  return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height };
+}
+
+function idAtLayoutPoint(rects: Map<number, LayoutBox>, x: number, y: number, draggingId: number): number | null {
+  let insideId: number | null = null;
+  let nearestId: number | null = null;
+  let nearestDist = Infinity;
+  rects.forEach((rect, id) => {
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dist = Math.hypot(x - cx, y - cy);
+    if (dist < nearestDist) {
+      nearestDist = dist;
+      nearestId = id;
+    }
+    if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+      insideId = id;
+    }
+  });
+  const hit = insideId ?? nearestId;
+  if (!hit || hit === draggingId) return null;
+  const hitRect = rects.get(hit);
+  const dragRect = rects.get(draggingId);
+  if (!hitRect || !dragRect) return hit;
+  const toHit = Math.hypot(x - (hitRect.left + hitRect.width / 2), y - (hitRect.top + hitRect.height / 2));
+  const toDrag = Math.hypot(x - (dragRect.left + dragRect.width / 2), y - (dragRect.top + dragRect.height / 2));
+  const margin = Math.min(hitRect.width, hitRect.height) * 0.22;
+  if (toHit + margin >= toDrag) return null;
+  return hit;
+}
+
+function lockPageScroll() {
+  document.documentElement.style.overflow = 'hidden';
+  document.body.style.overflow = 'hidden';
+  document.body.style.touchAction = 'none';
+}
+
+function unlockPageScroll() {
+  document.documentElement.style.overflow = '';
+  document.body.style.overflow = '';
+  document.body.style.touchAction = '';
+}
+
 function AlbumFace({ album }: { album: PhotoAlbum }) {
   return (
     <>
@@ -61,7 +108,8 @@ export default function AlbumEditGrid({
   onReorderRef.current = onReorder;
   const itemsRef = useRef(items);
   const slotsRef = useRef(new Map<number, HTMLElement>());
-  const prevRectsRef = useRef(new Map<number, DOMRect>());
+  const prevRectsRef = useRef(new Map<number, LayoutBox>());
+  const layoutRectsRef = useRef(new Map<number, LayoutBox>());
   const floatElRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{
     id: number;
@@ -94,26 +142,28 @@ export default function AlbumEditGrid({
   }, [editing]);
 
   useLayoutEffect(() => {
-    const nextRects = new Map<number, DOMRect>();
+    const nextRects = new Map<number, LayoutBox>();
     items.forEach((album) => {
       const node = slotsRef.current.get(album.id);
       if (!node) return;
-      const rect = node.getBoundingClientRect();
+      node.style.transition = 'none';
+      node.style.transform = '';
+      const rect = boxOf(node);
       const prev = prevRectsRef.current.get(album.id);
       if (prev && album.id !== draggingId) {
         const dx = prev.left - rect.left;
         const dy = prev.top - rect.top;
         if (dx !== 0 || dy !== 0) {
-          node.style.transition = 'none';
           node.style.transform = `translate(${dx}px, ${dy}px)`;
           void node.offsetWidth;
-          node.style.transition = 'transform 0.22s ease';
+          node.style.transition = 'transform 0.2s ease';
           node.style.transform = '';
         }
       }
       nextRects.set(album.id, rect);
     });
     prevRectsRef.current = nextRects;
+    layoutRectsRef.current = nextRects;
   }, [items, draggingId]);
 
   useEffect(() => {
@@ -129,6 +179,7 @@ export default function AlbumEditGrid({
       if (!drag || drag.id !== id) return;
       drag.grabbed = true;
       drag.target?.setPointerCapture?.(drag.pointerId);
+      lockPageScroll();
       clearSelection();
       try {
         navigator.vibrate?.(12);
@@ -152,13 +203,7 @@ export default function AlbumEditGrid({
       const dx = event.clientX - drag.startX;
       const dy = event.clientY - drag.startY;
       if (!drag.grabbed) {
-        if (event.pointerType === 'touch') {
-          if (Math.hypot(dx, dy) > 10) {
-            if (drag.timer) window.clearTimeout(drag.timer);
-            dragRef.current = null;
-          }
-          return;
-        }
+        if (event.pointerType === 'touch') return;
         if (Math.hypot(dx, dy) > 6) grab(drag.id, event.clientX, event.clientY);
         if (!dragRef.current?.grabbed) return;
       }
@@ -168,9 +213,8 @@ export default function AlbumEditGrid({
         floatElRef.current.style.left = `${event.clientX - drag.offsetX}px`;
         floatElRef.current.style.top = `${event.clientY - drag.offsetY}px`;
       }
-      const under = document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-album-id]');
-      const overId = under ? Number(under.getAttribute('data-album-id')) : NaN;
-      if (!overId || overId === drag.id) return;
+      const overId = idAtLayoutPoint(layoutRectsRef.current, event.clientX, event.clientY, drag.id);
+      if (!overId) return;
       setItems((prev) => moveAlbum(prev, drag.id, overId));
     };
 
@@ -185,6 +229,7 @@ export default function AlbumEditGrid({
         // ignore
       }
       dragRef.current = null;
+      unlockPageScroll();
       slotsRef.current.forEach((node) => {
         node.style.transition = '';
         node.style.transform = '';
@@ -198,15 +243,22 @@ export default function AlbumEditGrid({
       if (dragRef.current?.grabbed) event.preventDefault();
     };
 
+    const onTouchMove = (event: TouchEvent) => {
+      if (dragRef.current) event.preventDefault();
+    };
+
     window.addEventListener('pointermove', onMove, { passive: false });
     window.addEventListener('pointerup', onUp);
     window.addEventListener('pointercancel', onUp);
     window.addEventListener('selectstart', onSelectStart);
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
     return () => {
+      unlockPageScroll();
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);
       window.removeEventListener('selectstart', onSelectStart);
+      window.removeEventListener('touchmove', onTouchMove);
     };
   }, [editing]);
 
@@ -223,6 +275,7 @@ export default function AlbumEditGrid({
           if (!drag || drag.id !== album.id) return;
           drag.grabbed = true;
           drag.target?.setPointerCapture?.(drag.pointerId);
+          lockPageScroll();
           window.getSelection()?.removeAllRanges();
           try {
             navigator.vibrate?.(12);
@@ -260,7 +313,7 @@ export default function AlbumEditGrid({
   return (
     <div
       data-album-edit-root
-      className="myraion-album-edit-root grid grid-cols-2 sm:grid-cols-3 gap-3"
+      className={`myraion-album-edit-root ${editing ? 'is-editing' : ''} grid grid-cols-2 sm:grid-cols-3 gap-3`}
       onContextMenu={editing ? (event) => event.preventDefault() : undefined}
     >
       {items.map((album) => {
@@ -277,7 +330,7 @@ export default function AlbumEditGrid({
             data-album-id={album.id}
             className={`myraion-album-slot relative bg-[#FFFCFA] rounded-[24px] overflow-hidden ${jiggling ? 'myraion-album-jiggle' : ''} ${isDragging ? 'opacity-0' : ''}`}
             onPointerDown={(e) => onPointerDown(e, album)}
-            style={editing ? { touchAction: draggingId ? 'none' : 'pan-y' } : undefined}
+            style={editing ? { touchAction: 'none' } : undefined}
           >
             {editing && canDelete && !isDragging && (
               <button
