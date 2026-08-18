@@ -1,3 +1,5 @@
+const SW_VERSION = '3';
+
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
@@ -7,7 +9,30 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  event.respondWith(fetch(event.request));
+  const req = event.request;
+  if (req.method !== 'GET') {
+    return;
+  }
+  let url;
+  try {
+    url = new URL(req.url);
+  } catch {
+    return;
+  }
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/ws/')) {
+    return;
+  }
+  event.respondWith(
+    fetch(req).catch(() => {
+      if (req.mode === 'navigate') {
+        return fetch('/');
+      }
+      return new Response('', { status: 504, statusText: 'offline' });
+    })
+  );
 });
 
 self.addEventListener('push', (event) => {
