@@ -127,6 +127,19 @@ html, body, #root, button, input, textarea, select {
 }
 
 @media (max-width: 1023px) {
+    .myraion-chat-messages,
+    .myraion-chat-messages *,
+    [data-message-menu],
+    [data-message-menu] * {
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        user-select: none !important;
+        -webkit-user-drag: none;
+    }
+    .myraion-chat-messages img {
+        pointer-events: auto;
+        -webkit-touch-callout: none !important;
+    }
     body.myraion-chat-thread-open {
         overflow: hidden;
         overscroll-behavior: none;
@@ -166,6 +179,9 @@ html, body, #root, button, input, textarea, select {
     -webkit-user-select: none !important;
     user-select: none !important;
     -webkit-touch-callout: none;
+}
+.myraion-album-edit-root.is-editing {
+    touch-action: none;
 }
 .myraion-album-slot {
     will-change: transform;

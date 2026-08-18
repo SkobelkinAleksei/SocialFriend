@@ -217,12 +217,8 @@ public class ChatController {
     public void deleteMessage(
             @PathVariable Long messageId,
             @RequestHeader("X-User-Id") Long senderId) {
-        ChatMessage msg = messageService.findById(messageId);
-        if (msg != null) {
-            messageService.deleteMessage(messageId, senderId);
-            msg.setDeleted(true);
-            broadcastSaved(msg, msg);
-        }
+        messageService.deleteMessage(messageId, senderId);
+        broadcastDeleted(messageId);
     }
 
     @DeleteMapping("/api/v1/social/chats/message/batch")
@@ -232,15 +228,16 @@ public class ChatController {
             @RequestHeader("X-User-Id") Long senderId) {
         if (messageIds == null || messageIds.isEmpty()) return;
 
-        messageService.deleteMessagesBatch(messageIds, senderId);
-        groupChatService.deleteGroupMessagesBatch(messageIds, senderId);
+        List<Long> ids = messageIds.stream()
+                .filter(id -> id != null && id > 0)
+                .toList();
+        if (ids.isEmpty()) return;
 
-        for (Long messageId : messageIds) {
-            ChatMessage msg = messageService.findById(messageId);
-            if (msg != null) {
-                msg.setDeleted(true);
-                broadcastSaved(msg, msg);
-            }
+        messageService.deleteMessagesBatch(ids, senderId);
+        groupChatService.deleteGroupMessagesBatch(ids, senderId);
+
+        for (Long id : ids) {
+            broadcastDeleted(id);
         }
     }
 
@@ -592,6 +589,16 @@ public class ChatController {
                     "/queue/messages",
                     dto
             );
+        }
+    }
+
+    private void broadcastDeleted(Long messageId) {
+        try {
+            ChatMessageDto dto = messageService.convertToDto(messageId);
+            dto.setDeleted(true);
+            broadcastDto(dto);
+        } catch (Exception ex) {
+            log.warn("[Чат] Не удалось разослать удаление сообщения {}: {}", messageId, ex.getMessage());
         }
     }
 

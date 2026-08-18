@@ -3,6 +3,33 @@ import api from '@/shared/lib/api';
 import { isCompactViewport, isDesktopViewport } from '@/shared/utils/navigation';
 import { isUnreadMarker } from '@/features/chat/chatUnread';
 import { isNearChatBottom, pinChatToBottom, scheduleChatOpenScroll } from '@/features/chat/chatScroll';
+import { showAppInfoToast } from '@/shared/utils/appToast';
+
+const sameMsgId = (a: unknown, b: unknown) => String(a ?? '') === String(b ?? '');
+
+const clearNativeTextSelection = () => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) sel.removeAllRanges();
+};
+
+const eventTargetElement = (e: Event): Element | null => {
+    const raw = e.target;
+    if (raw instanceof Element) return raw;
+    if (raw instanceof Node) return raw.parentElement;
+    return null;
+};
+
+const eventHitsMessageMenu = (e: Event): boolean => {
+    const path = typeof (e as PointerEvent).composedPath === 'function'
+        ? (e as PointerEvent).composedPath()
+        : [];
+    for (const node of path) {
+        if (node instanceof Element && (node.hasAttribute('data-message-menu') || node.closest('[data-message-menu]'))) {
+            return true;
+        }
+    }
+    return Boolean(eventTargetElement(e)?.closest('[data-message-menu]'));
+};
 
 export interface ReplyRef {
     id: string;
@@ -50,6 +77,16 @@ export interface Msg {
     systemLinkSuffix?: string;
     poll?: import('@/features/chat/chatPoll').ChatPoll;
 }
+
+const asDeletedMessage = (m: Msg): Msg => ({
+    ...m,
+    text: 'Сообщение удалено',
+    isDeleted: true,
+    photos: [],
+    files: [],
+    voiceUrl: undefined,
+    voiceDuration: undefined,
+});
 
 interface UseChatActionsProps {
     refreshRooms: (() => void) | undefined;
@@ -139,8 +176,7 @@ export function useChatActions({ refreshRooms }: UseChatActionsProps) {
         const closeMenu = (e: Event) => {
             const me = e as unknown as MouseEvent;
             if (typeof me.button === 'number' && me.button === 2) return;
-            const target = me.target as Element | null;
-            if (target?.closest?.('[data-message-menu]')) return;
+            if (eventHitsMessageMenu(e)) return;
             setContextMenu(null);
         };
         const closeOnScroll = () => setContextMenu(null);
@@ -160,6 +196,44 @@ export function useChatActions({ refreshRooms }: UseChatActionsProps) {
             scroller?.removeEventListener('scroll', closeOnScroll);
         };
     }, [contextMenu]);
+
+    useEffect(() => {
+        const inComposer = (el: Element | null) => Boolean(
+            el?.closest?.('[data-chat-composer]') || (inputRef.current && el && inputRef.current.contains(el))
+        );
+        const inChatChrome = (el: Element | null) => Boolean(
+            el?.closest?.('.myraion-chat-messages') || el?.closest?.('[data-message-menu]') || el?.closest?.('.message-bubble')
+        );
+        const onSelectStart = (e: Event) => {
+            if (isDesktopViewport()) return;
+            const el = eventTargetElement(e);
+            if (inComposer(el)) return;
+            if (inChatChrome(el)) e.preventDefault();
+        };
+        const onSelectionChange = () => {
+            if (isDesktopViewport()) return;
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0) return;
+            const node = sel.anchorNode;
+            const el = node instanceof Element ? node : node?.parentElement || null;
+            if (inComposer(el)) return;
+            if (inChatChrome(el)) sel.removeAllRanges();
+        };
+        const blockNativeMenu = (e: Event) => {
+            if (isDesktopViewport()) return;
+            const el = eventTargetElement(e);
+            if (inComposer(el)) return;
+            if (inChatChrome(el)) e.preventDefault();
+        };
+        document.addEventListener('selectstart', onSelectStart, true);
+        document.addEventListener('selectionchange', onSelectionChange);
+        document.addEventListener('contextmenu', blockNativeMenu, true);
+        return () => {
+            document.removeEventListener('selectstart', onSelectStart, true);
+            document.removeEventListener('selectionchange', onSelectionChange);
+            document.removeEventListener('contextmenu', blockNativeMenu, true);
+        };
+    }, []);
 
     useEffect(() => {
         if (messages.length === 0) return;
@@ -192,15 +266,17 @@ export function useChatActions({ refreshRooms }: UseChatActionsProps) {
     const longPressRef = useRef<{ timer: number | null; x: number; y: number }>({ timer: null, x: 0, y: 0 });
 
     const openMessageMenu = (clientX: number, clientY: number, msgId: string) => {
-        const menuWidth = 180;
-        const menuHeight = 160;
+        const menuWidth = 200;
+        const menuHeight = 300;
+        const pad = 8;
+        const composerReserve = 96;
         let posX = clientX + 15;
         let posY = clientY - 10;
-        if (posX + menuWidth > window.innerWidth) { posX = clientX - menuWidth - 15; }
-        const maxAllowedY = window.innerHeight - menuHeight - 85;
-        if (posY > maxAllowedY) { posY = maxAllowedY; }
-        if (posX < 8) posX = 8;
-        if (posY < 8) posY = 8;
+        if (posX + menuWidth > window.innerWidth - pad) { posX = clientX - menuWidth - 15; }
+        const maxAllowedY = window.innerHeight - menuHeight - composerReserve;
+        if (posY > maxAllowedY) { posY = Math.max(pad, maxAllowedY); }
+        if (posX < pad) posX = pad;
+        if (posY < pad) posY = pad;
         setContextMenu({ x: posX, y: posY });
         setContextMenuMsgId(String(msgId));
     };
@@ -359,8 +435,10 @@ export function useChatActions({ refreshRooms }: UseChatActionsProps) {
         if (longPressRef.current.timer) window.clearTimeout(longPressRef.current.timer);
         longPressRef.current.timer = window.setTimeout(() => {
             longPressRef.current.timer = null;
+            clearNativeTextSelection();
             openMessageMenu(longPressRef.current.x, longPressRef.current.y, msgId);
         }, 480);
+        clearNativeTextSelection();
     };
 
     const moveMessageLongPress = (e: TouchEvent) => {
@@ -458,26 +536,56 @@ export function useChatActions({ refreshRooms }: UseChatActionsProps) {
         });
     };
 
+    const deleteInFlightRef = useRef(false);
+
     // Одиночное удаление сообщения (Честный Soft Delete на бэкенде)
     const handleDeleteMessage = async (id: string) => {
+        const key = String(id || '').trim();
+        if (!key || deleteInFlightRef.current) return;
+        const snapshot = messages.find((m) => sameMsgId(m.id, key));
+        setMessages((prev) => prev.map((m) => sameMsgId(m.id, key) ? asDeletedMessage(m) : m));
+        if (sameMsgId(editingId, key)) { setEditingId(null); setDraft(''); }
+        deleteInFlightRef.current = true;
         try {
-            await api.delete(`/api/v1/social/chats/message/${id}`);
-            setMessages((prev) => prev.map((m) => m.id === id ? { ...m, text: 'Сообщение удалено', isDeleted: true } : m));
-            if (editingId === id) { setEditingId(null); setDraft(''); }
+            await api.delete(`/api/v1/social/chats/message/${key}`);
             if (refreshRooms) { refreshRooms(); }
-        } catch (err) { console.error("Ошибка одиночного удаления сообщения:", err); }
+        } catch (err) {
+            console.error("Ошибка одиночного удаления сообщения:", err);
+            if (snapshot) {
+                setMessages((prev) => prev.map((m) => sameMsgId(m.id, key) ? snapshot : m));
+            }
+            showAppInfoToast('Чат', 'Не удалось удалить сообщение');
+        } finally {
+            deleteInFlightRef.current = false;
+        }
     };
 
     // Пакетное удаление сообщений (Batch Soft Delete по эндпоинту /message/batch)
     const handleDeleteSelectedMessages = async () => {
-        if (selectedParentIds.length === 0) return;
+        if (deleteInFlightRef.current || selectedParentIds.length === 0) return;
+        const keys = selectedParentIds.map((id) => String(id)).filter(Boolean);
+        const idsToNumbers = keys.map((id) => Number(id)).filter((n) => Number.isFinite(n) && n > 0);
+        if (idsToNumbers.length === 0) return;
+        const keySet = new Set(keys);
+        const snapshots = messages.filter((m) => keySet.has(String(m.id)));
+        setMessages((prev) => prev.map((m) => keySet.has(String(m.id)) ? asDeletedMessage(m) : m));
+        resetSelectionMode();
+        deleteInFlightRef.current = true;
         try {
-            const idsToNumbers = selectedParentIds.map(id => Number(id));
             await api.delete('/api/v1/social/chats/message/batch', { data: idsToNumbers });
-            setMessages(prev => prev.map(m => selectedParentIds.includes(m.id) ? { ...m, text: 'Сообщение удалено', isDeleted: true } : m));
-            resetSelectionMode();
             if (refreshRooms) { refreshRooms(); }
-        } catch (err) { console.error("Ошибка пакетного удаления сообщений:", err); }
+        } catch (err) {
+            console.error("Ошибка пакетного удаления сообщений:", err);
+            if (snapshots.length) {
+                setMessages((prev) => prev.map((m) => {
+                    const snap = snapshots.find((s) => sameMsgId(s.id, m.id));
+                    return snap || m;
+                }));
+            }
+            showAppInfoToast('Чат', 'Не удалось удалить сообщения');
+        } finally {
+            deleteInFlightRef.current = false;
+        }
     };
 
     // Полный сброс режимов выбора и очистка стейтов

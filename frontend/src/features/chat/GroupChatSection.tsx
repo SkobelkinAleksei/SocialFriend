@@ -700,8 +700,10 @@ export default function GroupChatSection({
                 m.content = textContent;
             }
 
-            if (m.deleted === true) {
-                actions.setMessages((prev) => prev.map((msg) => msg.id === m.id.toString() ? { ...msg, text: 'Сообщение удалено', isDeleted: true } : msg));
+            if (m.deleted === true || m.isDeleted === true || m.msgDeleted === true) {
+                actions.setMessages((prev) => prev.map((msg) => String(msg.id) === String(m.id)
+                    ? { ...msg, text: 'Сообщение удалено', isDeleted: true, photos: [], files: [], voiceUrl: undefined, voiceDuration: undefined }
+                    : msg));
                 return;
             }
             if (m.pollUpdate && m.poll) {
@@ -755,6 +757,7 @@ export default function GroupChatSection({
                 isSystem: m.isSystem === true || m.system === true || hasJoinMarker || /покинул/i.test(textContent) || textContent.includes("отказался"),
                 edited: m.edited,
                 read: m.read,
+                isDeleted: m.deleted === true || m.isDeleted === true || m.msgDeleted === true,
                 systemLinkUserId: linkMetaLive?.systemLinkUserId,
                 systemLinkName: linkMetaLive?.systemLinkName,
                 systemLinkSuffix: linkMetaLive?.systemLinkSuffix,
@@ -776,7 +779,7 @@ export default function GroupChatSection({
                 bundledForwards: m.bundledForwards ? m.bundledForwards : undefined,
                 poll: m.poll || undefined
             };
-            if (newMsg.from === 'them' && !m.deleted && !m.edited) {
+            if (newMsg.from === 'them' && !newMsg.isDeleted && !m.edited) {
                 // Автопрочтение только если этот чат реально на экране
                 if (pageActiveRef.current && document.visibilityState === 'visible') {
                     api.post(`/api/v1/social/chats/room/${activeRoom.id}/read`)
@@ -809,20 +812,25 @@ export default function GroupChatSection({
 
                 if (messageMap.has(newMsg.id)) {
                     const existing = messageMap.get(newMsg.id)!;
-                    messageMap.set(newMsg.id, {
-                        ...existing,
-                        text: newMsg.text,
-                        edited: newMsg.edited || existing.edited,
-                        photos: newMsg.photos?.length ? newMsg.photos : existing.photos,
-                        files: newMsg.files?.length ? newMsg.files : existing.files,
-                        voiceUrl: newMsg.voiceUrl || existing.voiceUrl,
-                        voiceDuration: newMsg.voiceDuration || existing.voiceDuration,
-                        reply_to: newMsg.reply_to || existing.reply_to,
-                        forwardedFrom: newMsg.forwardedFrom || existing.forwardedFrom,
-                        bundledForwards: newMsg.bundledForwards || existing.bundledForwards,
-                        poll: newMsg.poll ? mergeIncomingPoll(existing.poll, newMsg.poll) : existing.poll,
-                        time: existing.time || newMsg.time
-                    });
+                    if (existing.isDeleted) {
+                        // Сокет не должен возвращать уже удалённое сообщение
+                    } else {
+                        messageMap.set(newMsg.id, {
+                            ...existing,
+                            text: newMsg.isDeleted ? 'Сообщение удалено' : newMsg.text,
+                            edited: newMsg.edited || existing.edited,
+                            photos: newMsg.isDeleted ? [] : (newMsg.photos?.length ? newMsg.photos : existing.photos),
+                            files: newMsg.isDeleted ? [] : (newMsg.files?.length ? newMsg.files : existing.files),
+                            voiceUrl: newMsg.isDeleted ? undefined : (newMsg.voiceUrl || existing.voiceUrl),
+                            voiceDuration: newMsg.isDeleted ? undefined : (newMsg.voiceDuration || existing.voiceDuration),
+                            reply_to: newMsg.reply_to || existing.reply_to,
+                            forwardedFrom: newMsg.forwardedFrom || existing.forwardedFrom,
+                            bundledForwards: newMsg.bundledForwards || existing.bundledForwards,
+                            poll: newMsg.poll ? mergeIncomingPoll(existing.poll, newMsg.poll) : existing.poll,
+                            time: existing.time || newMsg.time,
+                            isDeleted: newMsg.isDeleted || existing.isDeleted,
+                        });
+                    }
                 } else {
                     // Фикс исчезновения: если пришло реальное сообщение от нас, мы ищем временную заглушку в истории
                     if (newMsg.from === 'me') {
@@ -1614,7 +1622,7 @@ export default function GroupChatSection({
                     const el = actions.messagesContainerRef.current;
                     if (el && el.scrollTop < 80) void loadOlderGroupHistory();
                 }}
-                className="absolute inset-0 overflow-y-auto p-4 md:p-6 space-y-3"
+                className="myraion-chat-messages absolute inset-0 overflow-y-auto p-4 md:p-6 space-y-3"
             >
                 {historyLoadingMore ? <div className="text-center text-[11px] text-slate-400 py-1">Загрузка сообщений…</div> : null}
                 {!historyLoadingMore && historyHasMore && actions.messages.length > 0 ? (
@@ -1704,7 +1712,7 @@ export default function GroupChatSection({
                                     actions.toggleSelectParentId(m.id);
                                 }
                             }}
-                            className={`flex items-end gap-3 group/msg min-w-0 ${isMe ? 'justify-end' : 'justify-start'} ${actions.isSelectionMode ? (actions.isDeleteSelectionType && !isMe ? 'cursor-default' : 'cursor-pointer hover:bg-slate-100/40 rounded-xl px-2 transition-colors') : ''} transition-all duration-500 pointer-events-none lg:pointer-events-auto`}
+                            className={`flex items-end gap-3 group/msg min-w-0 ${isMe ? 'justify-end' : 'justify-start'} ${actions.isSelectionMode ? (actions.isDeleteSelectionType && !isMe ? 'cursor-default' : 'cursor-pointer hover:bg-slate-100/40 rounded-xl px-2 transition-colors') : ''} transition-all duration-500 ${actions.isSelectionMode ? 'pointer-events-auto' : 'pointer-events-none lg:pointer-events-auto'}`}
                         >
 
                         {actions.isSelectionMode && !isMe && !actions.isDeleteSelectionType && !isMsgDeleted && (
@@ -1777,7 +1785,7 @@ export default function GroupChatSection({
                                                                     }
                                                                 }
                                                             }}
-                                                            className="px-2 py-1 rounded-lg border-l-2 text-xs transition duration-200 block w-full text-left focus:outline-none hover:opacity-85 select-text"
+                                                            className="px-2 py-1 rounded-lg border-l-2 text-xs transition duration-200 block w-full text-left focus:outline-none hover:opacity-85 select-none"
                                                             style={{
                                                                 cursor: 'pointer',
                                                                 display: 'block',
@@ -1912,7 +1920,7 @@ export default function GroupChatSection({
                         </div>
                     </div>
                     {actions.isSelectionMode && actions.isDeleteSelectionType && (
-                        <button onClick={actions.handleDeleteSelectedMessages} className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition shrink-0 whitespace-nowrap"><Trash2 className="w-3.5 h-3.5" /><span>Удалить</span></button>
+                        <button type="button" onClick={actions.handleDeleteSelectedMessages} className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition shrink-0 whitespace-nowrap"><Trash2 className="w-3.5 h-3.5" /><span>Удалить</span></button>
                     )}
                     {actions.isSelectionMode && !actions.isDeleteSelectionType && (
                         <button type="button" onClick={(e) => { e.stopPropagation(); setIsForwardModalOpen(true); }} className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-[#5C4B7A] hover:bg-[#EDE6F5] rounded-lg transition shrink-0 whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 9 15 15"></polyline><path d="M3 21v-7a4 4 0 0 1 4-4h14"></path></svg><span>Переслать</span></button>
@@ -2157,7 +2165,7 @@ export default function GroupChatSection({
                 const msg = actions.messages.find(m => String(m.id) === String(actions.contextMenuMsgId));
                 const isMsgMe = msg?.from === 'me';
                 return (
-                    <div data-message-menu style={{ top: actions.contextMenu.y, left: actions.contextMenu.x }} className="fixed bg-white border border-slate-200 shadow-md rounded-xl py-1 w-[200px] max-w-[calc(100vw-16px)] md:w-[160px] md:max-w-[160px] z-50 animate-fadeIn">
+                    <div data-message-menu style={{ top: actions.contextMenu.y, left: actions.contextMenu.x }} className="fixed bg-white border border-slate-200 shadow-md rounded-xl py-1 w-[200px] max-w-[calc(100vw-16px)] md:w-[160px] md:max-w-[160px] max-h-[min(70dvh,320px)] overflow-y-auto z-50 animate-fadeIn">
                         <button onClick={(e) => { e.stopPropagation(); if (msg) { const ref: ReplyRef = { id: msg.id, author: msg.from === 'me' ? 'Вы' : `${msg.senderFirstName || 'Участник'} ${msg.senderLastName || ''}`.trim(), text: msg.poll ? `Голосование: ${msg.poll.question}` : formatSidebarMessage(msg.text, mediaHintFromMessage(msg)) }; actions.setReplyTo([ref]); actions.setSelectedParentIds([]); actions.setIsSelectionMode(false); } actions.setEditingId(null); actions.setContextMenu(null); }} className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-slate-700 hover:bg-[#EDE6F5] hover:text-[#5C4B7A] transition truncate">Ответить</button>
                         {isRoomAdmin && !msg?.isSystem && !msg?.isDeleted && !msg?.poll && (
                             <button onClick={async (e) => {
@@ -2221,8 +2229,8 @@ export default function GroupChatSection({
                         )}
                         {isMsgMe && (
                             <>
-                                <button onClick={(e) => { e.stopPropagation(); actions.setIsSelectionMode(true); actions.setIsDeleteSelectionType(true); actions.toggleSelectParentId(actions.contextMenuMsgId!); actions.setContextMenu(null); }} className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-slate-700 hover:bg-[#EDE6F5] hover:text-[#5C4B7A] transition border-b border-slate-100/80 truncate">Удалить несколько</button>
-                                <button onClick={(e) => { e.stopPropagation(); actions.handleDeleteMessage(actions.contextMenuMsgId!); actions.setContextMenu(null); }} className="w-full text-left px-3 py-1.5 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 transition truncate">Удалить сообщение</button>
+                                <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); actions.setIsSelectionMode(true); actions.setIsDeleteSelectionType(true); actions.toggleSelectParentId(actions.contextMenuMsgId!); actions.setContextMenu(null); }} className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-slate-700 hover:bg-[#EDE6F5] hover:text-[#5C4B7A] transition border-b border-slate-100/80 truncate">Удалить несколько</button>
+                                <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); const id = String(actions.contextMenuMsgId || msg?.id || ''); actions.setContextMenu(null); if (id) void actions.handleDeleteMessage(id); }} className="w-full text-left px-3 py-1.5 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 transition truncate">Удалить сообщение</button>
                             </>
                         )}
                     </div>

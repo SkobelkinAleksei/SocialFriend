@@ -442,8 +442,8 @@ export default function PersonalChatSection({
                 setPartnerTyping(false);
             }
 
-            if (m.deleted === true) {
-                actions.setMessages((prev) => prev.map((msg) => msg.id === m.id.toString() ? { ...msg, text: 'Сообщение удалено', isDeleted: true } : msg));
+            if (m.deleted === true || m.isDeleted === true || m.msgDeleted === true) {
+                actions.setMessages((prev) => prev.map((msg) => String(msg.id) === String(m.id) ? { ...msg, text: 'Сообщение удалено', isDeleted: true, photos: [], files: [], voiceUrl: undefined, voiceDuration: undefined } : msg));
                 return;
             }
             if (m.edited) {
@@ -827,7 +827,7 @@ export default function PersonalChatSection({
                     const el = actions.messagesContainerRef.current;
                     if (el && el.scrollTop < 80) void loadOlderPersonalHistory();
                 }}
-                className="absolute inset-0 overflow-y-auto p-4 md:p-6 space-y-3"
+                className="myraion-chat-messages absolute inset-0 overflow-y-auto p-4 md:p-6 space-y-3"
             >
                 {historyLoadingMore ? <div className="text-center text-[11px] text-slate-400 py-1">Загрузка сообщений…</div> : null}
                 {!historyLoadingMore && historyHasMore && actions.messages.length > 0 ? (
@@ -1218,7 +1218,7 @@ export default function PersonalChatSection({
                 return (
                     <div
                         style={{ top: actions.contextMenu.y, left: actions.contextMenu.x }}
-                        className="fixed bg-white border border-slate-200 shadow-md rounded-xl py-1 w-[200px] max-w-[calc(100vw-16px)] md:w-[160px] md:max-w-[160px] z-50 animate-fadeIn"
+                        className="fixed bg-white border border-slate-200 shadow-md rounded-xl py-1 w-[200px] max-w-[calc(100vw-16px)] md:w-[160px] md:max-w-[160px] max-h-[min(70dvh,320px)] overflow-y-auto z-50 animate-fadeIn"
                         data-message-menu
                     >
                         <button
@@ -1314,14 +1314,16 @@ export default function PersonalChatSection({
                         {isMsgMe && (
                             <>
                                 <button
-                                    onClick={(e) => { e.stopPropagation(); actions.setIsSelectionMode(true); actions.setIsDeleteSelectionType(true); actions.toggleSelectParentId(actions.contextMenuMsgId!); actions.setContextMenu(null); }}
+                                    type="button"
+                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); actions.setIsSelectionMode(true); actions.setIsDeleteSelectionType(true); actions.toggleSelectParentId(actions.contextMenuMsgId!); actions.setContextMenu(null); }}
                                     className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-slate-700 hover:bg-[#EDE6F5] hover:text-[#5C4B7A] transition border-b border-slate-100/80 truncate"
                                 >
                                     Удалить несколько
                                 </button>
 
                                 <button
-                                    onClick={(e) => { e.stopPropagation(); actions.handleDeleteMessage(actions.contextMenuMsgId!); actions.setContextMenu(null); }}
+                                    type="button"
+                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); const id = String(actions.contextMenuMsgId || msg?.id || ''); actions.setContextMenu(null); if (id) void actions.handleDeleteMessage(id); }}
                                     className="w-full text-left px-3 py-1.5 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 transition truncate"
                                 >
                                     Удалить сообщение

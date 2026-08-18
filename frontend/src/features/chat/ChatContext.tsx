@@ -484,7 +484,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
                 setChats((prevChats) => {
                     const chatsList = prevChats || [];
                     const isChatExists = chatsList.some((c) => c && c.id === partnerId);
-                    const messageIsDeleted = body.deleted === true;
+                    const messageIsDeleted = body.deleted === true || body.isDeleted === true || body.msgDeleted === true;
                     if (!isChatExists) {
                         const newChatCard = {
                             id: partnerId,
@@ -575,6 +575,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             const hasPhotos = Array.isArray(media.photos) && media.photos.length > 0;
             const hasFiles = Array.isArray(media.files) && media.files.length > 0;
             const hasVoice = Boolean(media.voiceUrl);
+            const messageIsDeleted = body.deleted === true || body.isDeleted === true || body.msgDeleted === true;
             const isTechnicalDeleteAction = body.content === '[DELETED]' || body.isDeleteAction || (!body.content && !hasPhotos && !hasFiles && !hasVoice);
             if (isTechnicalDeleteAction) { setTimeout(() => { refreshEventRooms(); }, 50); }
             let foundRoom = false;
@@ -585,7 +586,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
                 foundRoom = true;
                 const isEditAction = body.edited === true;
                 const isPollUpdate = body.pollUpdate === true;
-                const rawLastMessage = isTechnicalDeleteAction
+                const rawLastMessage = messageIsDeleted
+                    ? 'Сообщение удалено'
+                    : isTechnicalDeleteAction
                     ? (targetRoom.lastMessage || 'Групповой чат')
                     : (isEditAction || isPollUpdate)
                         ? (targetRoom.lastMessage === body.oldContent ? body.content : targetRoom.lastMessage)
@@ -594,7 +597,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
                 const finalTime = isTechnicalDeleteAction || isPollUpdate ? targetRoom.time : parseSidebarTime(body.timestamp);
                 const viewing = getViewingChat();
                 const isGroupOpen = viewing?.kind === 'group' && viewing.id === String(body.chatId);
-                const finalUnread = (isMessageFromMe || isTechnicalDeleteAction || isEditAction || isPollUpdate || isGroupOpen)
+                const finalUnread = (isMessageFromMe || isTechnicalDeleteAction || messageIsDeleted || isEditAction || isPollUpdate || isGroupOpen)
                     ? (targetRoom.unread || 0)
                     : ((targetRoom.unread || 0) + 1);
                 const rawContent = String(body.content || '');
