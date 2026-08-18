@@ -47,7 +47,7 @@ export async function maybeOfferAddToHome(): Promise<void> {
   const ok = await showAppConfirm({
     title,
     message,
-    confirmText: 'Как добавить',
+    confirmText: 'Добавить',
     cancelText: 'Позже',
   });
   try {
