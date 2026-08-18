@@ -1,6 +1,6 @@
 import { showAppConfirm, showAppInfoToast } from '@/shared/utils/appToast';
 
-const PWA_CHOICE_KEY = 'myraion.pwa.choice';
+const PWA_CHOICE_KEY = 'myraion.pwa.choice.v2';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -28,6 +28,12 @@ function isIos(): boolean {
   return /iphone|ipad|ipod/i.test(navigator.userAgent);
 }
 
+function isPhoneDevice(): boolean {
+  return /iphone|ipod|windows phone/i.test(navigator.userAgent)
+    || /android.+mobile/i.test(navigator.userAgent)
+    || (/ipad|android/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+}
+
 export async function maybeOfferAddToHome(): Promise<void> {
   if (isStandaloneDisplay()) return;
   try {
@@ -35,9 +41,12 @@ export async function maybeOfferAddToHome(): Promise<void> {
   } catch {
     return;
   }
+  const phone = isPhoneDevice();
+  const title = phone ? '«На районе» на телефон' : '«На районе» на компьютер';
+  const message = phone ? 'Добавить на экран "Домой"' : 'Добавить ярлык на рабочий стол';
   const ok = await showAppConfirm({
-    title: '«На районе» на телефон',
-    message: 'Добавить на экран "Домой"',
+    title,
+    message,
     confirmText: 'Как добавить',
     cancelText: 'Позже',
   });
@@ -57,10 +66,10 @@ export async function maybeOfferAddToHome(): Promise<void> {
     deferredPrompt = null;
     return;
   }
-  showAppInfoToast(
-    '«На районе» на телефон',
-    isIos()
+  const howTo = phone
+    ? (isIos()
       ? 'Поделитесь страницей → «На экран Домой».'
-      : 'В меню браузера нажмите «Установить приложение» или «На экран Домой».'
-  );
+      : 'В меню браузера нажмите «Установить приложение» или «На экран Домой».')
+    : 'В меню браузера нажмите «Установить приложение».';
+  showAppInfoToast(title, howTo);
 }
