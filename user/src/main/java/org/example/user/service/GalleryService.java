@@ -58,7 +58,7 @@ public class GalleryService {
         assertCanView(ownerId, viewerId);
         ensureSavedAlbum(ownerId);
         boolean owner = ownerId.equals(viewerId);
-        return albumRepository.findByOwnerIdOrderByCreatedAtDesc(ownerId).stream()
+        return albumRepository.findByOwnerIdOrderBySortOrderAscCreatedAtDesc(ownerId).stream()
                 .filter(album -> owner || album.getKind() != PhotoAlbumKind.SAVED)
                 .map(this::toAlbumDto)
                 .toList();
@@ -72,6 +72,7 @@ public class GalleryService {
                 .title(cleaned)
                 .kind(PhotoAlbumKind.CUSTOM)
                 .coverMode(AlbumCoverMode.LATEST)
+                .sortOrder(nextFrontSortOrder(ownerId))
                 .build();
         return toAlbumDto(albumRepository.save(album));
     }
@@ -103,15 +104,42 @@ public class GalleryService {
     }
 
     @Transactional
+    public List<PhotoAlbumDto> reorderAlbums(Long ownerId, List<Long> albumIds) {
+        if (albumIds == null || albumIds.isEmpty()) {
+            throw new IllegalArgumentException("Не указан порядок групп.");
+        }
+        List<PhotoAlbumEntity> owned = albumRepository.findByOwnerIdOrderBySortOrderAscCreatedAtDesc(ownerId);
+        java.util.Set<Long> ownedIds = owned.stream().map(PhotoAlbumEntity::getId).collect(java.util.stream.Collectors.toSet());
+        java.util.Set<Long> seen = new java.util.HashSet<>();
+        int index = 0;
+        for (Long id : albumIds) {
+            if (id == null || !ownedIds.contains(id) || !seen.add(id)) continue;
+            PhotoAlbumEntity album = owned.stream().filter(item -> item.getId().equals(id)).findFirst().orElse(null);
+            if (album == null) continue;
+            album.setSortOrder(index++);
+            albumRepository.save(album);
+        }
+        for (PhotoAlbumEntity album : owned) {
+            if (seen.contains(album.getId())) continue;
+            album.setSortOrder(index++);
+            albumRepository.save(album);
+        }
+        return listAlbums(ownerId, ownerId);
+    }
+
+    @Transactional
     public void deleteAlbum(Long ownerId, Long albumId) {
         PhotoAlbumEntity album = albumRepository.findByIdAndOwnerId(albumId, ownerId)
                 .orElseThrow(() -> new EntityNotFoundException("Альбом не найден"));
         if (album.getKind() == PhotoAlbumKind.SAVED) {
             throw new IllegalArgumentException("Системный альбом нельзя удалить.");
         }
-        PhotoAlbumEntity saved = ensureSavedAlbum(ownerId);
-        photoRepository.findByAlbumIdOrderByCreatedAtDesc(albumId)
-                .forEach(photo -> photo.setAlbumId(saved.getId()));
+        List<GalleryPhotoEntity> photos = photoRepository.findByAlbumIdOrderByCreatedAtDesc(albumId);
+        List<String> likeKeys = photos.stream().map(photo -> String.valueOf(photo.getId())).toList();
+        if (!likeKeys.isEmpty()) {
+            likeRepository.deleteByKindAndTargetKeyIn(PhotoLikeKind.GALLERY, likeKeys);
+        }
+        photoRepository.deleteAll(photos);
         albumRepository.delete(album);
     }
 
@@ -206,7 +234,7 @@ public class GalleryService {
     public void deletePhoto(Long ownerId, Long photoId) {
         GalleryPhotoEntity photo = photoRepository.findByIdAndOwnerId(photoId, ownerId)
                 .orElseThrow(() -> new EntityNotFoundException("Фото не найдено"));
-        albumRepository.findByOwnerIdOrderByCreatedAtDesc(ownerId).stream()
+        albumRepository.findByOwnerIdOrderBySortOrderAscCreatedAtDesc(ownerId).stream()
                 .filter(album -> photoId.equals(album.getCoverPhotoId()))
                 .forEach(album -> {
                     album.setCoverPhotoId(null);
@@ -515,6 +543,13 @@ public class GalleryService {
         }
     }
 
+    private int nextFrontSortOrder(Long ownerId) {
+        return albumRepository.findByOwnerIdOrderBySortOrderAscCreatedAtDesc(ownerId).stream()
+                .mapToInt(PhotoAlbumEntity::getSortOrder)
+                .min()
+                .orElse(0) - 1;
+    }
+
     private PhotoAlbumEntity ensureSavedAlbum(Long ownerId) {
         return albumRepository.findByOwnerIdAndKind(ownerId, PhotoAlbumKind.SAVED)
                 .orElseGet(() -> albumRepository.save(PhotoAlbumEntity.builder()
@@ -532,6 +567,7 @@ public class GalleryService {
                     .title(cleanTitle(newTitle))
                     .kind(PhotoAlbumKind.CUSTOM)
                     .coverMode(AlbumCoverMode.LATEST)
+                    .sortOrder(nextFrontSortOrder(ownerId))
                     .build());
         }
         if (albumId != null) {
@@ -559,6 +595,7 @@ public class GalleryService {
                 .coverMode(album.getCoverMode().name())
                 .coverUrl(coverUrl)
                 .photoCount(count)
+                .sortOrder(album.getSortOrder())
                 .build();
     }
 

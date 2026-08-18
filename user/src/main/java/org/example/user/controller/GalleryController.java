@@ -39,6 +39,14 @@ public class GalleryController {
         return ResponseEntity.ok(galleryService.createAlbum(userId, request.getTitle()));
     }
 
+    @PutMapping("/me/albums/order")
+    public ResponseEntity<List<PhotoAlbumDto>> reorderAlbums(
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestBody ReorderAlbumsRequest request
+    ) {
+        return ResponseEntity.ok(galleryService.reorderAlbums(userId, request.getAlbumIds()));
+    }
+
     @PatchMapping("/me/albums/{albumId}")
     public ResponseEntity<PhotoAlbumDto> updateAlbum(
             @RequestHeader("X-User-Id") Long userId,

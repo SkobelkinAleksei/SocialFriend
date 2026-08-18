@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, type MouseEvent, type TouchEvent } from 'react';
 import api from '@/shared/lib/api';
 import { isDesktopViewport } from '@/shared/utils/navigation';
+import { isUnreadMarker } from '@/features/chat/chatUnread';
 
 export interface ReplyRef {
     id: string;
@@ -69,7 +70,7 @@ export function useChatActions({ refreshRooms }: UseChatActionsProps) {
     const [highlightId, setHighlightId] = useState<string | null>(null);
 
     const messagesContainerRef = useRef<HTMLDivElement | null>(null);
-    const inputRef = useRef<HTMLInputElement | null>(null);
+    const inputRef = useRef<HTMLTextAreaElement | null>(null);
     const isMySentAction = useRef(false);
     const jumpingToMessageRef = useRef(false);
     const loadOlderMessagesRef = useRef<(() => Promise<boolean>) | null>(null);
@@ -412,7 +413,7 @@ export function useChatActions({ refreshRooms }: UseChatActionsProps) {
 
     // Переключение чекбоксов множественного выбора и синхронизация шапки ответа
     const toggleSelectParentId = (id: string) => {
-        if (id === 'telegram-unread-line-marker') return;
+        if (isUnreadMarker(id)) return;
         setEditingId(null);
         setSelectedParentIds(prev => {
             const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];

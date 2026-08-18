@@ -1,20 +1,23 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Image as ImageIcon, Plus, Upload } from 'lucide-react';
+import { ArrowLeft, Plus, Upload } from 'lucide-react';
 import { ChatMediaLightbox } from '@/features/chat/ChatPhotoGrid';
 import { useAuth } from '@/shared/context/AuthContext';
 import api from '@/shared/lib/api';
-import { showAppInfoToast } from '@/shared/utils/appToast';
+import { showAppConfirm, showAppInfoToast } from '@/shared/utils/appToast';
 import { useAppBackHandler } from '@/shared/hooks/useAppBackHandler';
 import {
   createAlbum,
+  deleteAlbum,
   deleteGalleryPhoto,
   fetchAlbums,
   fetchPhotos,
   GalleryPhoto,
   monthLabel,
   PhotoAlbum,
+  reorderAlbums,
   resolvePhotoUrl,
 } from '@/shared/utils/photoGallery';
+import AlbumEditGrid from '@/features/photos/AlbumEditGrid';
 
 type PhotosProps = {
   mode?: 'owner' | 'guest';
@@ -37,9 +40,11 @@ export default function Photos({ mode = 'owner', targetUserId, navigate }: Photo
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [newAlbumTitle, setNewAlbumTitle] = useState('');
   const [ownerName, setOwnerName] = useState('');
+  const [editing, setEditing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useAppBackHandler(!!activeAlbum, () => setActiveAlbum(null));
+  useAppBackHandler(editing && !activeAlbum, () => setEditing(false));
 
   const loadAlbums = async () => {
     if (!userId) return;
@@ -70,6 +75,7 @@ export default function Photos({ mode = 'owner', targetUserId, navigate }: Photo
     if (!userId) return;
     setActiveAlbum(null);
     setTab('albums');
+    setEditing(false);
     loadAlbums();
     loadPhotos(0);
     if (!owner) {
@@ -119,6 +125,7 @@ export default function Photos({ mode = 'owner', targetUserId, navigate }: Photo
   };
 
   const openAlbum = (album: PhotoAlbum) => {
+    setEditing(false);
     setActiveAlbum(album);
     loadPhotos(0, album.id);
   };
@@ -127,6 +134,51 @@ export default function Photos({ mode = 'owner', targetUserId, navigate }: Photo
     setActiveAlbum(null);
     loadPhotos(0);
   };
+
+  const handleDeleteAlbum = async (album: PhotoAlbum) => {
+    const confirmed = await showAppConfirm({
+      title: 'Удалить группу',
+      message: 'Группа и все фото внутри будут удалены.',
+      confirmText: 'Удалить',
+      cancelText: 'Назад',
+      danger: true,
+    });
+    if (!confirmed) return;
+    try {
+      await deleteAlbum(album.id);
+      setAlbums((prev) => prev.filter((item) => item.id !== album.id));
+    } catch (error: any) {
+      showAppInfoToast('Фото', error?.response?.data?.detail || error?.response?.data?.details || 'Не удалось удалить группу');
+    }
+  };
+
+  const handleReorder = async (ids: number[]) => {
+    const current = albums.map((item) => item.id).join(',');
+    if (current === ids.join(',')) return;
+    const previous = albums;
+    setAlbums((prev) => {
+      const map = new Map(prev.map((item) => [item.id, item]));
+      return ids.map((id) => map.get(id)).filter(Boolean) as PhotoAlbum[];
+    });
+    try {
+      const next = await reorderAlbums(ids);
+      setAlbums(next);
+    } catch (error: any) {
+      setAlbums(previous);
+      showAppInfoToast('Фото', error?.response?.data?.detail || 'Не удалось сохранить порядок');
+    }
+  };
+
+  useEffect(() => {
+    if (!editing) return;
+    const onDown = (event: PointerEvent) => {
+      const target = event.target as Element | null;
+      if (target?.closest?.('[data-album-edit-root], [data-album-edit-toggle], [data-app-confirm]')) return;
+      setEditing(false);
+    };
+    window.addEventListener('pointerdown', onDown);
+    return () => window.removeEventListener('pointerdown', onDown);
+  }, [editing]);
 
   if (!userId) return <div className="p-8 text-slate-500">Загружаем фотографии...</div>;
   if (!owner && hidden) return null;
@@ -143,15 +195,25 @@ export default function Photos({ mode = 'owner', targetUserId, navigate }: Photo
           </h1>
         </div>
         {owner && (
-          <div className="shrink-0 self-start sm:self-auto">
+          <div className="flex flex-wrap items-center gap-2 shrink-0 self-start sm:self-auto">
             <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) upload(file);
               e.target.value = '';
             }} />
-            <button type="button" onClick={() => fileRef.current?.click()} className="h-10 px-4 rounded-full bg-[#5C4B7A] text-white text-xs font-semibold inline-flex items-center gap-1.5">
+            <button type="button" onClick={() => fileRef.current?.click()} className="h-10 px-4 rounded-full bg-[#5C4B7A] text-white text-xs font-semibold inline-flex items-center justify-center gap-1.5">
               <Upload className="w-3.5 h-3.5" /> Загрузить
             </button>
+            {!activeAlbum && tab === 'albums' && (
+              <button
+                type="button"
+                data-album-edit-toggle
+                onClick={() => setEditing((v) => !v)}
+                className={`h-10 px-4 rounded-full text-xs font-semibold inline-flex items-center justify-center gap-1.5 ${editing ? 'bg-[#5C4B7A] text-white' : 'bg-[#EDE6F5] text-[#5C4B7A]'}`}
+              >
+                {editing ? 'Готово' : 'Править'}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -161,7 +223,7 @@ export default function Photos({ mode = 'owner', targetUserId, navigate }: Photo
           {!activeAlbum && (
             <div className="flex gap-2 mb-5">
               <button type="button" onClick={() => { setTab('albums'); loadPhotos(0); }} className={`px-4 py-2 rounded-full text-xs font-semibold ${tab === 'albums' ? 'bg-[#5C4B7A] text-white' : 'bg-[#FFFCFA] text-[#5C4B7A]'}`}>Группы</button>
-              <button type="button" onClick={() => { setTab('timeline'); setActiveAlbum(null); loadPhotos(0); }} className={`px-4 py-2 rounded-full text-xs font-semibold ${tab === 'timeline' ? 'bg-[#5C4B7A] text-white' : 'bg-[#FFFCFA] text-[#5C4B7A]'}`}>По дате</button>
+              <button type="button" onClick={() => { setTab('timeline'); setActiveAlbum(null); setEditing(false); loadPhotos(0); }} className={`px-4 py-2 rounded-full text-xs font-semibold ${tab === 'timeline' ? 'bg-[#5C4B7A] text-white' : 'bg-[#FFFCFA] text-[#5C4B7A]'}`}>По дате</button>
             </div>
           )}
 
@@ -181,28 +243,15 @@ export default function Photos({ mode = 'owner', targetUserId, navigate }: Photo
           )}
 
           {tab === 'albums' && !activeAlbum ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {albums.map((album) => (
-                <button key={album.id} type="button" onClick={() => openAlbum(album)} className="text-left bg-[#FFFCFA] rounded-[24px] overflow-hidden hover:shadow-md transition">
-                  <div className="h-32 bg-[#EDE6F5]">
-                    {album.coverUrl ? (
-                      <img src={resolvePhotoUrl(album.coverUrl)} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[#8A8494]">
-                        <ImageIcon className="w-8 h-8" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-3">
-                    <div className="text-sm font-semibold text-[#1C1824] truncate">{album.title}</div>
-                    <div className="text-[11px] text-[#8A8494] mt-0.5">{album.photoCount} фото</div>
-                  </div>
-                </button>
-              ))}
-              {albums.length === 0 && !loading && (
-                <div className="col-span-full text-center py-12 text-[#8A8494] text-sm">Групп пока нет</div>
-              )}
-            </div>
+            albums.length === 0 && loading ? null : (
+              <AlbumEditGrid
+                albums={albums}
+                editing={owner && editing}
+                onOpen={openAlbum}
+                onDelete={handleDeleteAlbum}
+                onReorder={handleReorder}
+              />
+            )
           ) : (
             <div className="space-y-6">
               {activeAlbum && <h2 className="myraion-display text-[28px] text-[#1C1824]">{activeAlbum.title}</h2>}

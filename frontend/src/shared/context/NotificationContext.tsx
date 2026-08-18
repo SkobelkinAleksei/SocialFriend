@@ -586,6 +586,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             {confirmDialog && createPortal(
                 <div
                     className="fixed inset-0"
+                    data-app-confirm
                     style={{ zIndex: 10001, background: 'rgba(28, 24, 36, 0.45)' }}
                     onClick={() => resolveConfirm(false)}
                 >

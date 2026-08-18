@@ -18,6 +18,7 @@ export type PhotoAlbum = {
   coverMode: string;
   coverUrl?: string | null;
   photoCount: number;
+  sortOrder?: number;
 };
 
 export type GalleryPhoto = {
@@ -90,6 +91,15 @@ export async function fetchGalleryPhoto(photoId: number): Promise<GalleryPhoto> 
 export async function createAlbum(title: string): Promise<PhotoAlbum> {
   const res = await api.post('/api/v1/social/users/me/albums', { title });
   return res.data;
+}
+
+export async function deleteAlbum(albumId: number): Promise<void> {
+  await api.delete(`/api/v1/social/users/me/albums/${albumId}`);
+}
+
+export async function reorderAlbums(albumIds: number[]): Promise<PhotoAlbum[]> {
+  const res = await api.put('/api/v1/social/users/me/albums/order', { albumIds });
+  return res.data || [];
 }
 
 export async function savePhotoToAlbum(sourceUrl: string, options?: { albumId?: number; newAlbumTitle?: string }): Promise<GalleryPhoto> {

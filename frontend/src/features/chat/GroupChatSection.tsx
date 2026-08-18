@@ -54,6 +54,8 @@ import ChatEmojiPicker, { insertEmojiAtCursor } from '@/features/chat/ChatEmojiP
 import ChatSearchBar from '@/features/chat/ChatSearchBar';
 import ChatPinnedBar from '@/features/chat/ChatPinnedBar';
 import ChatMessageText from '@/features/chat/ChatMessageText';
+import ChatComposerInput from '@/features/chat/ChatComposerInput';
+import ChatUnreadDivider, { insertUnreadDivider, isUnreadMarker } from '@/features/chat/ChatUnreadDivider';
 import { mentionQuery, insertMention } from '@/features/chat/chatMentions';
 import ChatPollCard from '@/features/chat/ChatPollCard';
 import CreatePollModal from '@/features/chat/CreatePollModal';
@@ -192,12 +194,14 @@ function SystemLinkedNameLabel({ userId, name, suffix, time }: { userId: number;
 
 export default function GroupChatSection({
                                              activeRoom,
+                                             pageActive = true,
                                              setEventRooms,
                                              onCloseChat,
                                              onNavigateToPersonal,
                                              onNavigateToGroup
                                          }: {
     activeRoom: ChatRoom;
+    pageActive?: boolean;
     setEventRooms: any;
     onCloseChat: () => void;
     onNavigateToPersonal: (chat: any) => void;
@@ -205,8 +209,17 @@ export default function GroupChatSection({
 }) {
     const { user } = useAuth();
     const { openReport } = useReport();
-    const { eventRooms, refreshEventRooms, stompClient } = useChat();
+    const { eventRooms, personalGroups, refreshEventRooms, stompClient } = useChat();
     const isPersonalGroup = isPersonalGroupRoom(activeRoom);
+    const unreadAtOpenRef = useRef(Math.max(
+        0,
+        Number(
+            ((isPersonalGroup ? personalGroups : eventRooms) || []).find((r) => r && Number(r.id) === Number(activeRoom.id))?.unread
+            ?? activeRoom.unread
+        ) || 0
+    ));
+    const pageActiveRef = useRef(pageActive);
+    pageActiveRef.current = pageActive;
 
     const actions = useChatActions({
         refreshRooms: refreshEventRooms
@@ -428,35 +441,19 @@ export default function GroupChatSection({
                 setHistoryLoadingMore(false);
                 historyHasMoreRef.current = true;
                 setHistoryHasMore(true);
-                const unreadAtOpen = Math.max(0, Number(activeRoom.unread) || 0);
+                const unreadAtOpen = unreadAtOpenRef.current;
                 const response = await api.get(`/api/v1/social/chats/room/${activeRoom.id}/history`, {
                     params: { size: HISTORY_PAGE_SIZE },
                 });
-                const formatted: Msg[] = [];
                 const tempMapped = (response.data || []).map(mapRaw);
                 const sortedMessages = tempMapped.sort((a: any, b: any) => Number(a.id) - Number(b.id));
                 historyHasMoreRef.current = (response.data || []).length >= HISTORY_PAGE_SIZE;
                 setHistoryHasMore((response.data || []).length >= HISTORY_PAGE_SIZE);
-                const markerIndex = unreadAtOpen > 0
-                    ? Math.max(0, sortedMessages.length - unreadAtOpen)
-                    : -1;
-
-                sortedMessages.forEach((msg: any, index: number) => {
-                    if (index === markerIndex) {
-                        formatted.push({
-                            id: 'telegram-unread-line-marker',
-                            senderId: 0,
-                            from: 'them',
-                            text: 'Новые сообщения',
-                            time: '',
-                            isSystem: true
-                        } as Msg);
-                    }
-                    formatted.push(msg);
-                });
+                const formatted = insertUnreadDivider(sortedMessages, unreadAtOpen);
 
                 actions.setMessages(formatted.length > 0 ? formatted : sortedMessages);
 
+                if (pageActiveRef.current && document.visibilityState === 'visible') {
                 api.post(`/api/v1/social/chats/room/${activeRoom.id}/read`)
                     .then(() => {
                         if (setEventRooms) {
@@ -465,6 +462,7 @@ export default function GroupChatSection({
                         if (refreshEventRooms) { refreshEventRooms(); }
                     })
                     .catch((err) => console.error("Ошибка авто-прочтения при входе:", err));
+                }
 
                 requestAnimationFrame(() => {
                     setTimeout(() => {
@@ -492,9 +490,27 @@ export default function GroupChatSection({
             .catch(() => undefined);
     }, [activeRoom.id]);
 
+    useEffect(() => {
+        if (!pageActive) return;
+        const markIfOnScreen = () => {
+            if (document.visibilityState !== 'visible') return;
+            api.post(`/api/v1/social/chats/room/${activeRoom.id}/read`)
+                .then(() => {
+                    if (setEventRooms) {
+                        setEventRooms((prevRooms: any[]) => (prevRooms || []).map((r) => r && r.id === activeRoom.id ? { ...r, unread: 0 } : r));
+                    }
+                    if (refreshEventRooms) { refreshEventRooms(); }
+                })
+                .catch((err) => console.error("Ошибка авто-прочтения при входе:", err));
+        };
+        markIfOnScreen();
+        document.addEventListener('visibilitychange', markIfOnScreen);
+        return () => document.removeEventListener('visibilitychange', markIfOnScreen);
+    }, [pageActive, activeRoom.id, setEventRooms, refreshEventRooms]);
+
     const loadOlderGroupHistory = async (): Promise<boolean> => {
         if (historyLoadingRef.current || !historyHasMoreRef.current) return false;
-        const oldest = messagesRef.current.find((m) => m.id !== 'telegram-unread-line-marker' && /^\d+$/.test(String(m.id)));
+        const oldest = messagesRef.current.find((m) => !isUnreadMarker(m.id) && /^\d+$/.test(String(m.id)));
         if (!oldest) {
             historyHasMoreRef.current = false;
             setHistoryHasMore(false);
@@ -752,8 +768,8 @@ export default function GroupChatSection({
                 poll: m.poll || undefined
             };
             if (newMsg.from === 'them' && !m.deleted && !m.edited) {
-                // Автопрочтение только если вкладка/окно реально видно
-                if (document.visibilityState === 'visible') {
+                // Автопрочтение только если этот чат реально на экране
+                if (pageActiveRef.current && document.visibilityState === 'visible') {
                     api.post(`/api/v1/social/chats/room/${activeRoom.id}/read`)
                         .then(() => {
                             if (setEventRooms) {
@@ -813,7 +829,7 @@ export default function GroupChatSection({
 
                 const updatedArray = Array.from(messageMap.values());
                 return updatedArray.sort((a, b) => {
-                    if (a.id === 'telegram-unread-line-marker' || b.id === 'telegram-unread-line-marker') return 0;
+                    if (isUnreadMarker(a.id) || isUnreadMarker(b.id)) return 0;
                     return Number(a.id) - Number(b.id);
                 });
             });
@@ -1025,7 +1041,7 @@ export default function GroupChatSection({
             className="flex-1 flex flex-col h-full min-h-0 overflow-hidden relative"
             data-open-group-chat={activeRoom.id}
         >
-            <div className={`px-3 md:px-6 py-3.5 border-b ${theme.surface.border} ${theme.surface.card} flex items-center justify-between shrink-0`}>
+            <div className={`px-3 md:px-6 py-3.5 max-lg:pt-[max(0.75rem,env(safe-area-inset-top))] border-b ${theme.surface.border} ${theme.surface.card} flex items-center justify-between shrink-0`}>
                 <div className="flex items-center gap-2 md:gap-3 min-w-0">
                     <button
                         type="button"
@@ -1601,12 +1617,8 @@ export default function GroupChatSection({
                     </button>
                 ) : null}
                 {actions.messages.map((m) => {
-                    if (m.id === 'telegram-unread-line-marker') {
-                        return (
-                            <div key={m.id} id={m.id} className="flex items-center my-6 select-none pointer-events-none w-full animate-fadeIn">
-                                <div className="flex-1 h-px bg-[#5C4B7A]/60" /><span className="mx-4 text-[11px] font-semibold text-[#5C4B7A] tracking-wide uppercase px-3 py-1 bg-[#EDE6F5] rounded-full border border-[#5C4B7A]/15 shadow-sm">{m.text}</span><div className="flex-1 h-px bg-[#5C4B7A]/60" />
-                            </div>
-                        );
+                    if (isUnreadMarker(m.id)) {
+                        return <ChatUnreadDivider key={m.id} text={m.text} />;
                     }
                     if (m.isSystem) {
                         if (m.poll) {
@@ -1915,7 +1927,7 @@ export default function GroupChatSection({
                 </div>
             )}
 
-            <div className={`px-4 py-3 border-t ${theme.surface.border} ${theme.surface.card} shrink-0`}>
+            <div className={`myraion-chat-composer px-4 py-3 border-t ${theme.surface.border} ${theme.surface.card} shrink-0`}>
                 <ChatPendingStrip media={chatMedia} />
                 {voice.mode !== 'idle' ? (
                     <ChatVoiceRecordingBar
@@ -1929,7 +1941,7 @@ export default function GroupChatSection({
                         onSend={voice.send}
                     />
                 ) : (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-end gap-2">
                         <ChatPaperclipButton media={chatMedia} disabled={actions.editingId !== null} />
                         <button
                             type="button"
@@ -1940,7 +1952,7 @@ export default function GroupChatSection({
                         >
                             <BarChart2 className="w-4 h-4" />
                         </button>
-                        <div className="relative flex-1">
+                        <div className="relative flex-1 min-w-0">
                         {(() => {
                             const q = mentionQuery(actions.draft, actions.inputRef.current?.selectionStart || actions.draft.length);
                             if (q == null) return null;
@@ -1968,16 +1980,15 @@ export default function GroupChatSection({
                             </div>
                             );
                         })()}
-                        <input
-                            ref={actions.inputRef}
+                        <ChatComposerInput
+                            inputRef={actions.inputRef}
                             value={actions.draft}
-                            onChange={(e) => {
-                                actions.setDraft(e.target.value);
-                                if (e.target.value.trim() && !actions.editingId) sendTyping();
+                            onChange={(next) => {
+                                actions.setDraft(next);
+                                if (next.trim() && !actions.editingId) sendTyping();
                             }}
-                            onKeyDown={(e) => e.key === 'Enter' && send()}
+                            onSend={send}
                             placeholder={actions.editingId ? 'Отредактируйте сообщение…' : 'Напишите сообщение…'}
-                            className="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5C4B7A]/30 focus:bg-white transition"
                         />
                         </div>
                         <div className="relative">

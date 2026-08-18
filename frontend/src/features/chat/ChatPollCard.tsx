@@ -37,7 +37,7 @@ export default function ChatPollCard({
         <div className={`rounded-2xl border px-3 py-3 min-w-[220px] ${mine ? 'border-white/20 bg-white/10' : 'border-slate-100 bg-white'}`}>
             <div className="flex items-start gap-2 mb-2.5">
                 <BarChart2 className={`w-4 h-4 mt-0.5 shrink-0 ${mine ? 'text-white/80' : 'text-[#5C4B7A]'}`} />
-                <div className={`text-sm font-semibold leading-snug min-w-0 [overflow-wrap:anywhere] break-all ${mine ? 'text-white' : 'text-slate-900'}`}>{poll.question}</div>
+                <div className={`text-sm font-semibold leading-snug min-w-0 break-words [overflow-wrap:anywhere] [word-break:normal] ${mine ? 'text-white' : 'text-slate-900'}`}>{poll.question}</div>
             </div>
             <div className="space-y-1.5">
                 {poll.options.map((option) => {

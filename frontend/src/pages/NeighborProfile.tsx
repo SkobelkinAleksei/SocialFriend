@@ -9,6 +9,7 @@ import Section from '@/shared/ui/Section';
 import PostComments, { Comment } from '@/features/feed/PostComments';
 import PostCard from '@/features/feed/PostCard';
 import AvatarPhotoViewer from '@/features/photos/AvatarPhotoViewer';
+import ProfilePhotosPreview from '@/features/photos/ProfilePhotosPreview';
 import { DEFAULT_COVER_COLOR, fetchPhotos, resolvePhotoUrl } from '@/shared/utils/photoGallery';
 import { openNeighborProfile, openNeighborFriends, getAvatarUrl, openNeighborEvents, openNeighborPhotos, readStoredUserId } from '@/shared/utils/navigation';
 import { fetchPresence, PRESENCE_INTERVAL_MS } from '@/shared/utils/presence';
@@ -25,8 +26,6 @@ import {
     MessageSquare,
     UserX,
     Eye,
-    Image as ImageIcon,
-    ChevronRight,
 } from 'lucide-react';
 
 interface Post {
@@ -708,25 +707,12 @@ export default function NeighborProfile({ targetUserId, navigate }: NeighborProf
 
             {!photosHidden && photoPreview.urls.length > 0 && (
                 <div className="mb-6">
-                    <button
-                        type="button"
-                        onClick={() => openNeighborPhotos(neighbor.userId)}
-                        className="w-full bg-[#FFFCFA] rounded-2xl md:rounded-[32px] p-3 md:p-5 text-left hover:shadow-md transition group"
-                    >
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                                <ImageIcon className="w-4 h-4 text-[#5C4B7A]" />
-                                <span className="text-sm font-semibold text-[#5C4B7A]">Фотографии</span>
-                                <span className="text-xs text-[#8A8494] tabular-nums">{photoPreview.total}</span>
-                            </div>
-                            <ChevronRight className="w-4 h-4 text-[#8A8494] group-hover:translate-x-0.5 transition" />
-                        </div>
-                        <div className="flex gap-2 h-20 md:h-36">
-                            {photoPreview.urls.slice(0, 4).map((url, i) => (
-                                <img key={`${url}-${i}`} src={url} alt="" className="flex-1 min-w-0 h-full object-cover rounded-2xl" />
-                            ))}
-                        </div>
-                    </button>
+                    <ProfilePhotosPreview
+                        userId={Number(neighbor.userId)}
+                        total={photoPreview.total}
+                        urls={photoPreview.urls}
+                        onOpenAll={() => openNeighborPhotos(neighbor.userId)}
+                    />
                 </div>
             )}
 

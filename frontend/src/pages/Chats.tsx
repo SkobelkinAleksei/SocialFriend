@@ -24,6 +24,7 @@ import { useAppBackHandler } from '@/shared/hooks/useAppBackHandler';
 import { readChatDraft, subscribeChatDrafts } from '@/features/chat/chatDrafts';
 import { showAppInfoToast } from '@/shared/utils/appToast';
 import { clearViewingChat, setViewingChat } from '@/shared/lib/viewingChat';
+import { useMobileChatViewport } from '@/features/chat/useMobileChatViewport';
 
 interface Chat {
   id: string;
@@ -67,6 +68,8 @@ export default function Chats({ pageActive = true }: { pageActive?: boolean }) {
   const { eventRooms, chats, setChats, setEventRooms, personalGroups, setPersonalGroups, refreshEventRooms } = useChat();
   const [active, setActive] = useState<Chat | null>(null);
   const [activeRoom, setActiveRoom] = useState<ChatRoom | null>(null);
+  const pageActiveRef = useRef(pageActive);
+  pageActiveRef.current = pageActive;
   const [query, setQuery] = useState('');
   const [chatToDelete, setChatToDelete] = useState<Chat | null>(null);
   const [deleteCompletely, setDeleteCompletely] = useState(false);
@@ -175,6 +178,7 @@ export default function Chats({ pageActive = true }: { pageActive?: boolean }) {
   };
 
   const tryOpenFromNotification = async () => {
+    if (!pageActiveRef.current) return;
     let personalId = localStorage.getItem('activePersonalId') || localStorage.getItem('openDirectChatWith');
     let groupId = localStorage.getItem('activeGroupId');
     if (!personalId && !groupId) {
@@ -246,7 +250,7 @@ export default function Chats({ pageActive = true }: { pageActive?: boolean }) {
 
   useEffect(() => {
     void tryOpenRef.current();
-  }, [chats, eventRooms, personalGroups]);
+  }, [chats, eventRooms, personalGroups, pageActive]);
 
   useEffect(() => {
     const onOpen = () => { void tryOpenRef.current(); };
@@ -460,9 +464,10 @@ export default function Chats({ pageActive = true }: { pageActive?: boolean }) {
   const totalUnread = personalUnread + eventsUnread;
 
   const chatOpen = !!(active || activeRoom);
+  useMobileChatViewport(pageActive && chatOpen);
 
   return (
-      <div className="h-full flex w-full overflow-hidden bg-[#FFFCFA] md:bg-transparent pb-[calc(4.25rem+env(safe-area-inset-bottom))] md:pb-0">
+      <div className={`h-full flex w-full overflow-hidden bg-[#FFFCFA] md:bg-transparent ${chatOpen ? 'pb-0' : 'pb-[calc(4.25rem+env(safe-area-inset-bottom))] md:pb-0'}`}>
         {/* ЛЕВАЯ ПАНЕЛЬ СПИСКА ЧАТОВ */}
         <div className={`${chatOpen ? 'hidden lg:flex' : 'flex'} w-full lg:w-80 border-r ${theme.surface.border} ${theme.surface.card} flex-col shrink-0 h-full min-h-0`}>
           <div className="p-4 border-b border-slate-200">
@@ -782,11 +787,12 @@ export default function Chats({ pageActive = true }: { pageActive?: boolean }) {
           </div>
         </div>
         {/* ПРАВАЯ ЧАСТЬ — ДИСПЕТЧЕР ИЗОЛИРОВАННЫХ ОКР ПЕРЕПИСКИ */}
-        <div className={`${chatOpen ? 'flex' : 'hidden lg:flex'} flex-1 flex-col h-full min-h-0 overflow-hidden relative bg-[#FFFCFA] md:bg-transparent`}>
+        <div className={`${chatOpen ? 'flex max-lg:fixed max-lg:left-0 max-lg:right-0 max-lg:z-40 max-lg:top-[var(--myraion-chat-vv-top,0px)] max-lg:h-[var(--myraion-chat-vv-height,100dvh)]' : 'hidden lg:flex'} flex-1 flex-col h-full min-h-0 overflow-hidden relative bg-[#FFFCFA] md:bg-transparent`}>
           {activeRoom ? (
               <GroupChatSection
                   key={`group-${activeRoom.id}`}
                   activeRoom={activeRoom}
+                  pageActive={pageActive}
                   setEventRooms={isPersonalGroupRoom(activeRoom) ? setPersonalGroups : setEventRooms}
                   onCloseChat={closeOpenChat}
                   onNavigateToPersonal={(chatDto) => { setActiveRoom(null); setActive(chatDto); persistOpenChat('personal', chatDto.id); }}
@@ -796,6 +802,7 @@ export default function Chats({ pageActive = true }: { pageActive?: boolean }) {
               <PersonalChatSection
                   key={`personal-${active.id}`}
                   activePersonal={active}
+                  pageActive={pageActive}
                   onClosePersonal={closeOpenChat}
                   onNavigateToPersonal={(chatDto) => { setActiveRoom(null); setActive(chatDto); persistOpenChat('personal', chatDto.id); }}
                   onNavigateToGroup={(roomDto) => { setActive(null); setActiveRoom(roomDto); persistOpenChat('group', roomDto.id); }}

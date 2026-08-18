@@ -16,4 +16,5 @@ public class PhotoAlbumDto {
     private String coverMode;
     private String coverUrl;
     private long photoCount;
+    private int sortOrder;
 }

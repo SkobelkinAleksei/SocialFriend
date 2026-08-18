@@ -37,6 +37,8 @@ import ChatEmojiPicker, { insertEmojiAtCursor } from '@/features/chat/ChatEmojiP
 import ChatSearchBar from '@/features/chat/ChatSearchBar';
 import ChatPinnedBar from '@/features/chat/ChatPinnedBar';
 import ChatMessageText from '@/features/chat/ChatMessageText';
+import ChatComposerInput from '@/features/chat/ChatComposerInput';
+import ChatUnreadDivider, { insertUnreadDivider, isUnreadMarker } from '@/features/chat/ChatUnreadDivider';
 import { showAppInfoToast } from '@/shared/utils/appToast';
 import { useReport } from '@/features/report/ReportModal';
 import { mentionQuery, insertMention } from '@/features/chat/chatMentions';
@@ -55,11 +57,13 @@ interface Chat {
 
 export default function PersonalChatSection({
     activePersonal,
+    pageActive = true,
     onClosePersonal,
     onNavigateToPersonal,
     onNavigateToGroup
 }: {
     activePersonal: Chat;
+    pageActive?: boolean;
     onClosePersonal: () => void;
     onNavigateToPersonal: (chat: any) => void;
     onNavigateToGroup: (room: any) => void;
@@ -75,6 +79,12 @@ export default function PersonalChatSection({
     const [searchOpen, setSearchOpen] = useState(false);
     const [pins, setPins] = useState<any[]>([]);
     const chatMeta = (chats || []).find((c) => Number(c.id) === Number(activePersonal.id));
+    const unreadAtOpenRef = useRef(Math.max(
+        0,
+        Number(chatMeta?.unread ?? activePersonal.unread) || 0
+    ));
+    const pageActiveRef = useRef(pageActive);
+    pageActiveRef.current = pageActive;
     const [emojiOpen, setEmojiOpen] = useState(false);
     const [historyHasMore, setHistoryHasMore] = useState(true);
     const [historyLoadingMore, setHistoryLoadingMore] = useState(false);
@@ -216,26 +226,12 @@ export default function PersonalChatSection({
                 const tempMapped = filtered.map(mapRaw);
 
                 const sortedMessages = tempMapped.sort((a: any, b: any) => Number(a.id) - Number(b.id));
-                const formatted: Msg[] = [];
-                let hasInsertedUnreadMarker = false;
-
-                sortedMessages.forEach((msg: any) => {
-                    if (!hasInsertedUnreadMarker && msg.from === 'them' && !msg.read) {
-                        formatted.push({
-                            id: 'telegram-unread-line-marker',
-                            senderId: 0,
-                            from: 'them',
-                            text: 'Новые сообщения',
-                            time: '',
-                            isSystem: true
-                        });
-                        hasInsertedUnreadMarker = true;
-                    }
-                    formatted.push(msg);
-                });
+                const unreadAtOpen = unreadAtOpenRef.current;
+                const formatted = insertUnreadDivider(sortedMessages, unreadAtOpen);
 
                 actions.setMessages(formatted.length > 0 ? formatted : tempMapped);
 
+                if (pageActiveRef.current && document.visibilityState === 'visible') {
                 api.put(`/api/v1/social/chats/read/${activePersonal.id}`)
                     .then(() => {
                         if (setChats) {
@@ -256,6 +252,7 @@ export default function PersonalChatSection({
                         }
                     })
                     .catch((err) => console.error("Ошибка сброса счетчика личного чата:", err));
+                }
 
                 setTimeout(() => {
                     const unreadElement = document.getElementById('telegram-unread-line-marker');
@@ -284,9 +281,39 @@ export default function PersonalChatSection({
             .catch(() => setPins([]));
     }, [activePersonal.id]);
 
+    useEffect(() => {
+        if (!pageActive) return;
+        const markIfOnScreen = () => {
+            if (document.visibilityState !== 'visible') return;
+            api.put(`/api/v1/social/chats/read/${activePersonal.id}`)
+                .then(() => {
+                    if (setChats) {
+                        setChats((prevChats) => (prevChats || []).map((c) =>
+                            c && c.id === activePersonal.id ? { ...c, unread: 0 } : c
+                        ));
+                    }
+                    if (stompClient && stompClient.connected) {
+                        stompClient.publish({
+                            destination: '/app/chat',
+                            body: JSON.stringify({
+                                recipientId: Number(activePersonal.id),
+                                senderId: user?.id,
+                                content: '[MESSAGES_READ]',
+                                chatId: null
+                            })
+                        });
+                    }
+                })
+                .catch((err) => console.error("Ошибка сброса счетчика личного чата:", err));
+        };
+        markIfOnScreen();
+        document.addEventListener('visibilitychange', markIfOnScreen);
+        return () => document.removeEventListener('visibilitychange', markIfOnScreen);
+    }, [pageActive, activePersonal.id, setChats, stompClient, user?.id]);
+
     const loadOlderPersonalHistory = async (): Promise<boolean> => {
         if (historyLoadingRef.current || !historyHasMoreRef.current) return false;
-        const oldest = messagesRef.current.find((m) => m.id !== 'telegram-unread-line-marker' && /^\d+$/.test(String(m.id)));
+        const oldest = messagesRef.current.find((m) => !isUnreadMarker(m.id) && /^\d+$/.test(String(m.id)));
         if (!oldest) {
             historyHasMoreRef.current = false;
             setHistoryHasMore(false);
@@ -451,6 +478,7 @@ export default function PersonalChatSection({
             };
 
             if (newMsg.from === 'them' && !newMsg.isSystem) {
+                if (pageActiveRef.current && document.visibilityState === 'visible') {
                 api.put(`/api/v1/social/chats/read/${activePersonal.id}`)
                     .then(() => {
                         if (setChats) {
@@ -462,6 +490,7 @@ export default function PersonalChatSection({
                         });
                     }).catch(err => console.error(err));
                 newMsg.read = true;
+                }
             }
 
             actions.setMessages((prev) => {
@@ -512,9 +541,9 @@ export default function PersonalChatSection({
                 // 3. Если это абсолютно новое входящее сообщение от собеседника — добавляем в массив
                 const updatedArray = [...prev, newMsg];
                 return updatedArray.sort((a, b) => {
-                    const idA = a.id === 'telegram-unread-line-marker' ? 0 : Number(a.id);
-                    const idB = b.id === 'telegram-unread-line-marker' ? 0 : Number(b.id);
-                    if (a.id === 'telegram-unread-line-marker' || b.id === 'telegram-unread-line-marker') return 0;
+                    const idA = isUnreadMarker(a.id) ? 0 : Number(a.id);
+                    const idB = isUnreadMarker(b.id) ? 0 : Number(b.id);
+                    if (isUnreadMarker(a.id) || isUnreadMarker(b.id)) return 0;
                     return idA - idB;
                 });
             });
@@ -641,7 +670,7 @@ export default function PersonalChatSection({
             className="flex-1 flex flex-col h-full min-h-0 overflow-hidden relative"
             data-open-personal-chat={activePersonal.id}
         >
-            <div className={`px-3 md:px-6 py-3.5 border-b ${theme.surface.border} ${theme.surface.card} flex items-center justify-between shrink-0`}>
+            <div className={`px-3 md:px-6 py-3.5 max-lg:pt-[max(0.75rem,env(safe-area-inset-top))] border-b ${theme.surface.border} ${theme.surface.card} flex items-center justify-between shrink-0`}>
                 <div className="flex items-center gap-2 md:gap-3 min-w-0">
                     <button
                         type="button"
@@ -798,18 +827,10 @@ export default function PersonalChatSection({
                     </button>
                 ) : null}
                 {actions.messages.map((m) => {
+                    if (isUnreadMarker(m.id)) {
+                        return <ChatUnreadDivider key={m.id} text={m.text} />;
+                    }
                     if (m.isSystem) {
-                        if (m.id === 'telegram-unread-line-marker') {
-                            return (
-                                <div key={m.id} id={m.id} className="flex items-center my-6 select-none pointer-events-none w-full animate-fadeIn">
-                                    <div className="flex-1 h-px bg-[#5C4B7A]/60" />
-                                    <span className="mx-4 text-[11px] font-semibold text-[#5C4B7A] tracking-wide uppercase px-3 py-1 bg-[#EDE6F5] rounded-full border border-[#5C4B7A]/15 shadow-sm">
- {m.text}
- </span>
-                                    <div className="flex-1 h-px bg-[#5C4B7A]/60" />
-                                </div>
-                            );
-                        }
                         return (
                             <div key={`sys-${m.id}`} className="flex flex-col items-center my-4 w-full animate-fadeIn select-none pointer-events-none">
                                 <span className="bg-slate-200/60 backdrop-blur-sm text-slate-500 text-[11px] font-medium px-4 py-1.5 rounded-full border border-slate-300/10 shadow-sm max-w-xs text-center min-w-0 [overflow-wrap:anywhere] break-all">{m.text}</span>
@@ -1086,7 +1107,7 @@ export default function PersonalChatSection({
                 </div>
             )}
             {/* НИЖНЯЯ ПАНЕЛЬ ВВОДА */}
-            <div className={`px-4 py-3 border-t ${theme.surface.border} ${theme.surface.card} shrink-0`}>
+            <div className={`myraion-chat-composer px-4 py-3 border-t ${theme.surface.border} ${theme.surface.card} shrink-0`}>
                 <ChatPendingStrip media={chatMedia} />
                 {voice.mode !== 'idle' ? (
                     <ChatVoiceRecordingBar
@@ -1100,9 +1121,9 @@ export default function PersonalChatSection({
                         onSend={voice.send}
                     />
                 ) : (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-end gap-2">
                         <ChatPaperclipButton media={chatMedia} disabled={actions.editingId !== null} />
-                    <div className="relative flex-1">
+                    <div className="relative flex-1 min-w-0">
                         {(() => {
                             const q = mentionQuery(actions.draft, actions.inputRef.current?.selectionStart || actions.draft.length);
                             if (q == null) return null;
@@ -1123,16 +1144,15 @@ export default function PersonalChatSection({
                             </div>
                             );
                         })()}
-                        <input
-                            ref={actions.inputRef}
+                        <ChatComposerInput
+                            inputRef={actions.inputRef}
                             value={actions.draft}
-                            onChange={(e) => {
-                                actions.setDraft(e.target.value);
-                                if (e.target.value.trim() && !actions.editingId) sendTyping();
+                            onChange={(next) => {
+                                actions.setDraft(next);
+                                if (next.trim() && !actions.editingId) sendTyping();
                             }}
-                            onKeyDown={(e) => e.key === 'Enter' && send()}
+                            onSend={send}
                             placeholder={actions.editingId ? 'Отредактируйте сообщение…' : 'Напишите сообщение…'}
-                            className="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5C4B7A]/30 focus:bg-white transition"
                         />
                     </div>
                         <div className="relative">

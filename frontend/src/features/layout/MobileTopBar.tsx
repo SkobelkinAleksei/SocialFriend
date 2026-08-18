@@ -12,7 +12,7 @@ export default function MobileTopBar({ page, setPage }: MobileTopBarProps) {
 
   return (
     <header
-      className="md:hidden fixed top-0 inset-x-0 z-30 flex items-center justify-between gap-3 px-4 bg-[#EFEAF6]/90 backdrop-blur-md border-b border-[#1A1916]/5"
+      className="myraion-mobile-topbar md:hidden fixed top-0 inset-x-0 z-30 flex items-center justify-between gap-3 px-4 bg-[#EFEAF6]/90 backdrop-blur-md border-b border-[#1A1916]/5"
       style={{ paddingTop: 'env(safe-area-inset-top)', height: 'calc(3.25rem + env(safe-area-inset-top))' }}
     >
       <div className="min-w-0">

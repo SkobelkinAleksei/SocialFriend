@@ -87,7 +87,7 @@ export default function ChatForwardedPack({
                 {senderName(fw)}
               </div>
               {caption ? (
-                <div className={`text-[12px] mt-0.5 min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere] break-all ${mine ? 'text-white/80' : 'text-slate-600'}`}>
+                <div className={`text-[12px] mt-0.5 min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:normal] ${mine ? 'text-white/80' : 'text-slate-600'}`}>
                   {caption}
                 </div>
               ) : null}

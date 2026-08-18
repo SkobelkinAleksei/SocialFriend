@@ -123,7 +123,42 @@ html, body, #root, button, input, textarea, select {
     max-width: 100%;
     overflow-x: clip;
     overflow-wrap: anywhere;
-    word-break: break-all;
+    word-break: normal;
+}
+
+@media (max-width: 1023px) {
+    body.myraion-chat-thread-open {
+        overflow: hidden;
+        overscroll-behavior: none;
+    }
+    body.myraion-chat-thread-open .myraion-mobile-topbar,
+    body.myraion-chat-thread-open .myraion-bottom-nav {
+        display: none;
+    }
+    body.myraion-chat-thread-open main {
+        padding-top: 0 !important;
+    }
+    body.myraion-chat-thread-open .myraion-chat-composer {
+        padding-bottom: var(--myraion-chat-composer-pad, max(0.75rem, env(safe-area-inset-bottom)));
+    }
+}
+
+@keyframes myraion-album-jiggle {
+    0% { transform: rotate(-1deg); }
+    50% { transform: rotate(1deg); }
+    100% { transform: rotate(-1deg); }
+}
+.myraion-album-jiggle {
+    animation: myraion-album-jiggle 0.26s ease-in-out infinite;
+    transform-origin: 50% 60%;
+}
+.myraion-album-jiggle:nth-child(2n) {
+    animation-duration: 0.3s;
+    animation-delay: -0.06s;
+}
+.myraion-album-jiggle:nth-child(3n) {
+    animation-duration: 0.22s;
+    animation-delay: -0.12s;
 }
 
 .leaflet-control-attribution,

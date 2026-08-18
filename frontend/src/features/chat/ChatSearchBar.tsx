@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, Search, X } from 'lucide-react';
 import type { Msg } from '@/features/chat/useChatActions';
+import { isUnreadMarker } from '@/features/chat/chatUnread';
 
 function searchableText(m: Msg): string {
     const poll = m.poll;
@@ -26,7 +27,7 @@ export default function ChatSearchBar({
         const q = query.trim().toLowerCase();
         if (q.length < 1) return [];
         return messages.filter((m) => {
-            if (m.isSystem || m.isDeleted || m.id === 'telegram-unread-line-marker') return false;
+            if (m.isSystem || m.isDeleted || isUnreadMarker(m.id)) return false;
             return searchableText(m).includes(q);
         });
     }, [messages, query]);

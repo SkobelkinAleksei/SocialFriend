@@ -37,6 +37,10 @@ public class PhotoAlbumEntity {
     @Column(name = "cover_photo_id")
     private Long coverPhotoId;
 
+    @Builder.Default
+    @Column(name = "sort_order", nullable = false)
+    private int sortOrder = 0;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, columnDefinition = "TIMESTAMP(0)")
     private LocalDateTime createdAt;

@@ -22,7 +22,7 @@ export default function BottomNav({ page, setPage }: BottomNavProps) {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t border-[#C8C4CE] bg-[#FFFCFA]"
+      className="myraion-bottom-nav md:hidden fixed bottom-0 inset-x-0 z-30 border-t border-[#C8C4CE] bg-[#FFFCFA]"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="grid grid-cols-5">

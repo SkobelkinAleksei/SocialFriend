@@ -18,12 +18,11 @@ import {
   Palette,
   Droplets,
   Camera,
-  ChevronRight,
-  Plus
 } from 'lucide-react';
 import MyPostSection from '@/features/feed/MyPostSection';
 import AvatarPhotoViewer from '@/features/photos/AvatarPhotoViewer';
 import ImageCropModal from '@/features/photos/ImageCropModal';
+import ProfilePhotosPreview from '@/features/photos/ProfilePhotosPreview';
 import { DEFAULT_COVER_COLOR, fetchPhotos, randomWarmCoverColor, resolvePhotoUrl, updateCover, uploadCoverFile, clearCoverPhoto, uploadAvatarFile } from '@/shared/utils/photoGallery';
 import { showAppInfoToast } from '@/shared/utils/appToast';
 
@@ -407,44 +406,15 @@ export default function MyPage({ navigate }: MyPageProps) {
         </div>
 
         <div className="mb-6">
-          <button
-            type="button"
-            onClick={() => { openMyPhotos(); navigate?.('photos'); }}
-            className={`w-full bg-[#FFFCFA] rounded-2xl lg:rounded-[32px] text-left hover:shadow-md transition group ${
-              photoPreview.urls.length > 0 ? 'p-3 md:p-4 lg:p-5' : 'px-4 py-3'
-            }`}
-          >
-            {photoPreview.urls.length > 0 ? (
-              <>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <ImageIcon className="w-4 h-4 text-[#5C4B7A]" />
-                    <span className="text-sm font-semibold text-[#5C4B7A]">Фотографии</span>
-                    <span className="text-xs text-[#8A8494] tabular-nums">{photoPreview.total}</span>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-[#8A8494] group-hover:translate-x-0.5 transition" />
-                </div>
-                <div className="flex gap-2 h-20 md:h-24 lg:h-36">
-                  {photoPreview.urls.slice(0, 4).map((url, i) => (
-                    <img key={`${url}-${i}`} src={url} alt="" className="flex-1 min-w-0 h-full object-cover rounded-2xl" />
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="w-9 h-9 rounded-full bg-[#EDE6F5] flex items-center justify-center shrink-0">
-                    <Plus className="w-4 h-4 text-[#5C4B7A]" />
-                  </span>
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-[#5C4B7A]">Фотографии</div>
-                    <div className="text-xs text-[#8A8494]">Добавьте первые снимки в альбом</div>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-[#8A8494] shrink-0 group-hover:translate-x-0.5 transition" />
-              </div>
-            )}
-          </button>
+          <ProfilePhotosPreview
+            userId={Number(user.id)}
+            total={photoPreview.total}
+            urls={photoPreview.urls}
+            owner
+            emptyHint="Добавьте первые снимки в альбом"
+            onOpenAll={() => { openMyPhotos(); navigate?.('photos'); }}
+            onChanged={loadPhotoPreview}
+          />
         </div>
 
         <MyPostSection onPostCreated={() => loadMyContent(0)} />

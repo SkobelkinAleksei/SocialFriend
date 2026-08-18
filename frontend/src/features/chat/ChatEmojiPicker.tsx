@@ -96,7 +96,7 @@ function writeRecent(emoji: string) {
 }
 
 export function insertEmojiAtCursor(
-    input: HTMLInputElement | null,
+    input: HTMLInputElement | HTMLTextAreaElement | null,
     emoji: string,
     value: string,
     setValue: (next: string) => void
