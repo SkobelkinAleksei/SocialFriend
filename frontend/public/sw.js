@@ -1,4 +1,4 @@
-const SW_VERSION = '3';
+const SW_VERSION = '4';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -8,32 +8,9 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-self.addEventListener('fetch', (event) => {
-  const req = event.request;
-  if (req.method !== 'GET') {
-    return;
-  }
-  let url;
-  try {
-    url = new URL(req.url);
-  } catch {
-    return;
-  }
-  if (url.origin !== self.location.origin) {
-    return;
-  }
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/ws/')) {
-    return;
-  }
-  event.respondWith(
-    fetch(req).catch(() => {
-      if (req.mode === 'navigate') {
-        return fetch('/');
-      }
-      return new Response('', { status: 504, statusText: 'offline' });
-    })
-  );
-});
+// Слушатель нужен, чтобы Chrome считал это приложением.
+// Запросы не перехватываем: иначе с ярлыка «Домой» ломается вход и весь сайт (ERR_FAILED).
+self.addEventListener('fetch', () => {});
 
 self.addEventListener('push', (event) => {
   let data = { title: 'На районе', body: 'На районе', url: '/' };
