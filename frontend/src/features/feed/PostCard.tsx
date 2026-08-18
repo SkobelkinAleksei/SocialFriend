@@ -38,6 +38,49 @@ export interface Post {
     photos?: string[];
 }
 
+const POST_PREVIEW_CHARS = 280;
+const POST_PREVIEW_LINES = 6;
+const POST_TEXT_CLASS =
+    'text-sm text-slate-800 font-normal leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere] break-all min-w-0 max-w-full';
+
+function postNeedsCollapse(text: string): boolean {
+    if (!text) return false;
+    if (text.length > POST_PREVIEW_CHARS) return true;
+    let lines = 1;
+    for (const ch of text) if (ch === '\n') lines += 1;
+    return lines > POST_PREVIEW_LINES;
+}
+
+function postPreview(text: string): string {
+    const parts = text.split('\n');
+    let cut = parts.length > POST_PREVIEW_LINES ? parts.slice(0, POST_PREVIEW_LINES).join('\n') : text;
+    if (cut.length > POST_PREVIEW_CHARS) cut = cut.slice(0, POST_PREVIEW_CHARS);
+    return cut;
+}
+
+function FeedPostText({ content, className = '' }: { content: string; className?: string }) {
+    const [open, setOpen] = useState(false);
+    useEffect(() => {
+        setOpen(false);
+    }, [content]);
+    const long = postNeedsCollapse(content);
+    const shown = !long || open ? content : postPreview(content);
+    return (
+        <div className={`min-w-0 max-w-full overflow-hidden ${className}`}>
+            <p className={POST_TEXT_CLASS}>{shown}</p>
+            {long && !open && (
+                <button
+                    type="button"
+                    onClick={() => setOpen(true)}
+                    className="mt-1.5 text-sm font-semibold text-[#5C4B7A] hover:text-[#4A3C66] transition"
+                >
+                    Читать полностью
+                </button>
+            )}
+        </div>
+    );
+}
+
 // Пропсы, которые карточка принимает от родительской страницы
 interface PostCardProps {
     post: Post;
@@ -503,8 +546,8 @@ export default function PostCard(
     return (
         <>
             {/* РЕНДЕР КАРТОЧКИ В ОБЩЕЙ ЛЕНТЕ */}
-            <div ref={cardRef}>
-            <Card padded={false} className={`overflow-hidden p-5 relative ${isGlobalModal ? 'hidden' : ''}`}>
+            <div ref={cardRef} className="min-w-0 max-w-full">
+            <Card padded={false} className={`overflow-hidden min-w-0 max-w-full p-5 relative ${isGlobalModal ? 'hidden' : ''}`}>
                 <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3 flex-1 min-w-0">
                         <button type="button" onClick={() => p.authorId !== currentUserId && openNeighborProfile(p.authorId)} className="shrink-0 focus:outline-none cursor-pointer">
@@ -596,7 +639,7 @@ export default function PostCard(
                     </div>
                 ) : (
                     <>
-                        <p className="mt-3 text-sm text-slate-800 font-normal leading-relaxed whitespace-pre-wrap">{p.content}</p>
+                        <FeedPostText content={p.content} className="mt-3" />
                         <ChatPhotoGrid photos={p.photos} layout="post" postId={p.id} authorId={p.authorId} addedAt={p.createdAt} />
                     </>
                 )}
@@ -689,8 +732,10 @@ export default function PostCard(
                         </div>
 
                         {/* 2. НАМЕРТВО ЗАФИКСИРОВАННЫЙ ТЕКСТ ПОСТА И ЛАЙКИ */}
-                        <div className="shrink-0 px-5 py-3 bg-[#EFEAF6]/50 border-b border-[#1C1824]/8">
-                            <p className="text-sm text-slate-800 font-normal leading-relaxed whitespace-pre-wrap">{p.content}</p>
+                        <div className="shrink-0 px-5 py-3 bg-[#EFEAF6]/50 border-b border-[#1C1824]/8 min-w-0">
+                            <div className="max-h-[30vh] overflow-y-auto min-w-0">
+                                <p className={POST_TEXT_CLASS}>{p.content}</p>
+                            </div>
                             <ChatPhotoGrid photos={p.photos} layout="post" postId={p.id} authorId={p.authorId} addedAt={p.createdAt} />
                             <div className="mt-3 flex items-center gap-4 text-xs font-semibold text-slate-400">
                                 <button onClick={handleLike} className="inline-flex items-center gap-1.5 text-slate-400 hover:text-red-500 transition-colors focus:outline-none cursor-pointer group/modal-like" type="button">
