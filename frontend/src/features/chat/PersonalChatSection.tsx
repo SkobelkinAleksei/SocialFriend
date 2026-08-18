@@ -30,6 +30,7 @@ import ChatMaterialsGallery from '@/features/chat/ChatMaterialsGallery';
 import ChatVoiceBubble from '@/features/chat/ChatVoiceBubble';
 import ChatFileBubble from '@/features/chat/ChatFileBubble';
 import { useChatMediaAttach } from '@/features/chat/useChatMediaAttach';
+import { useChatPasteImages } from '@/features/chat/useChatPasteImages';
 import { ChatPendingStrip, ChatPaperclipButton } from '@/features/chat/ChatComposerExtras';
 import { ChatMicButton, ChatVoiceRecordingBar, useChatVoiceRecorder } from '@/features/chat/useChatVoiceRecorder';
 import { publishForwardToChats } from '@/shared/utils/shareToChat';
@@ -139,6 +140,7 @@ export default function PersonalChatSection({
     const actions = useChatActions({
         refreshRooms: undefined
     });
+    useChatPasteImages(chatMedia.addPhotos, !actions.editingId && voice.mode === 'idle');
     messagesRef.current = actions.messages;
     historyHasMoreRef.current = historyHasMore;
 
@@ -1126,12 +1128,19 @@ export default function PersonalChatSection({
                     <ChatVoiceRecordingBar
                         mode={voice.mode}
                         elapsedMs={voice.elapsedMs}
-                        previewUrl={voice.previewUrl}
+                        peaks={voice.peaks}
                         previewDuration={voice.previewDuration}
+                        previewPlaying={voice.previewPlaying}
+                        previewProgress={voice.previewProgress}
+                        trimStart={voice.trimStart}
+                        trimEnd={voice.trimEnd}
                         busy={voice.busy}
                         onCancel={voice.cancel}
                         onStop={voice.stopToPreview}
                         onSend={voice.send}
+                        onTogglePreview={voice.togglePreview}
+                        onSeekPreview={voice.seekPreview}
+                        onTrim={voice.changeTrim}
                     />
                 ) : (
                     <div className="flex items-end gap-2">

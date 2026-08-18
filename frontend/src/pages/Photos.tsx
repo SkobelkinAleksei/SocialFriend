@@ -16,8 +16,10 @@ import {
   PhotoAlbum,
   reorderAlbums,
   resolvePhotoUrl,
+  uploadGalleryPhoto,
 } from '@/shared/utils/photoGallery';
 import AlbumEditGrid from '@/features/photos/AlbumEditGrid';
+import UploadAlbumPicker from '@/features/photos/UploadAlbumPicker';
 
 type PhotosProps = {
   mode?: 'owner' | 'guest';
@@ -41,7 +43,10 @@ export default function Photos({ mode = 'owner', targetUserId, navigate }: Photo
   const [newAlbumTitle, setNewAlbumTitle] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [editing, setEditing] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const pendingAlbumIdRef = useRef<number | null>(null);
 
   useAppBackHandler(!!activeAlbum, () => setActiveAlbum(null));
   useAppBackHandler(editing && !activeAlbum, () => setEditing(false));
@@ -100,17 +105,45 @@ export default function Photos({ mode = 'owner', targetUserId, navigate }: Photo
     return Array.from(map.entries());
   }, [photos]);
 
-  const upload = async (file: File) => {
-    const form = new FormData();
-    form.append('file', file);
-    if (activeAlbum?.id) form.append('albumId', String(activeAlbum.id));
+  const uploadFiles = async (files: File[]) => {
+    const albumId = activeAlbum?.id ?? pendingAlbumIdRef.current;
+    pendingAlbumIdRef.current = null;
+    if (!albumId) {
+      showAppInfoToast('Фото', 'Выберите группу, куда загрузить.');
+      return;
+    }
+    const images = files.filter((file) => file.type.startsWith('image/'));
+    if (!images.length) return;
+    setUploading(true);
+    let uploaded = 0;
+    let lastError = '';
     try {
-      await api.post('/api/v1/social/users/me/photos', form);
+      for (const file of images) {
+        try {
+          await uploadGalleryPhoto(file, albumId);
+          uploaded += 1;
+        } catch (error: any) {
+          lastError = error?.response?.data?.detail || 'Не удалось загрузить фото';
+        }
+      }
       await loadAlbums();
       await loadPhotos(0, activeAlbum?.id);
-    } catch (error: any) {
-      showAppInfoToast('Фото', error?.response?.data?.detail || 'Не удалось загрузить фото');
+      if (uploaded < images.length) {
+        showAppInfoToast('Фото', lastError || 'Не все фото удалось загрузить');
+      }
+    } finally {
+      setUploading(false);
     }
+  };
+
+  const startUpload = () => {
+    if (uploading) return;
+    if (activeAlbum?.id) {
+      pendingAlbumIdRef.current = activeAlbum.id;
+      fileRef.current?.click();
+      return;
+    }
+    setPickerOpen(true);
   };
 
   const handleCreateAlbum = async () => {
@@ -196,13 +229,25 @@ export default function Photos({ mode = 'owner', targetUserId, navigate }: Photo
         </div>
         {owner && (
           <div className="flex flex-wrap items-center gap-2 shrink-0 self-start sm:self-auto">
-            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) upload(file);
-              e.target.value = '';
-            }} />
-            <button type="button" onClick={() => fileRef.current?.click()} className="h-10 px-4 rounded-full bg-[#5C4B7A] text-white text-xs font-semibold inline-flex items-center justify-center gap-1.5">
-              <Upload className="w-3.5 h-3.5" /> Загрузить
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                const files = Array.from(e.target.files || []);
+                e.target.value = '';
+                if (files.length) void uploadFiles(files);
+              }}
+            />
+            <button
+              type="button"
+              disabled={uploading}
+              onClick={startUpload}
+              className="h-10 px-4 rounded-full bg-[#5C4B7A] text-white text-xs font-semibold inline-flex items-center justify-center gap-1.5 disabled:opacity-60"
+            >
+              <Upload className="w-3.5 h-3.5" /> {uploading ? 'Загрузка…' : 'Загрузить'}
             </button>
             {!activeAlbum && tab === 'albums' && (
               <button
@@ -281,6 +326,18 @@ export default function Photos({ mode = 'owner', targetUserId, navigate }: Photo
           )}
         </>
       )}
+
+      <UploadAlbumPicker
+        isOpen={pickerOpen}
+        albums={albums}
+        onClose={() => setPickerOpen(false)}
+        onCreated={(album) => setAlbums((prev) => [album, ...prev.filter((item) => item.id !== album.id)])}
+        onPick={(albumId) => {
+          pendingAlbumIdRef.current = albumId;
+          setPickerOpen(false);
+          fileRef.current?.click();
+        }}
+      />
 
       {lightboxIndex != null && photos[lightboxIndex] && (
         <ChatMediaLightbox

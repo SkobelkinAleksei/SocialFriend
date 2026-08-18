@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface GalleryPhotoRepository extends JpaRepository<GalleryPhotoEntity, Long> {
-    Page<GalleryPhotoEntity> findByOwnerIdOrderByCreatedAtDesc(Long ownerId, Pageable pageable);
     Page<GalleryPhotoEntity> findByOwnerIdAndAlbumIdOrderByCreatedAtDesc(Long ownerId, Long albumId, Pageable pageable);
 
     @Query("""

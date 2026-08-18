@@ -191,7 +191,7 @@ export async function uploadChatFile(file: File): Promise<{ url: string; name: s
 
 export async function uploadChatVoice(file: Blob): Promise<string> {
     const form = new FormData();
-    const ext = file.type.includes('ogg') ? 'ogg' : file.type.includes('mp4') ? 'm4a' : 'webm';
+    const ext = file.type.includes('wav') ? 'wav' : file.type.includes('ogg') ? 'ogg' : file.type.includes('mp4') ? 'm4a' : 'webm';
     form.append('file', file, `voice.${ext}`);
     const res = await api.post('/api/v1/social/chats/voice', form);
     return res.data.url as string;

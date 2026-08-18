@@ -61,6 +61,7 @@ export default function ChatComposerInput({
             enterKeyHint="enter"
             autoComplete="off"
             onFocus={() => onFocus?.()}
+            data-chat-composer
             className="w-full max-h-32 px-4 py-2.5 text-[16px] md:text-sm leading-snug bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5C4B7A]/30 focus:bg-white transition resize-none overflow-y-hidden whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
         />
     );

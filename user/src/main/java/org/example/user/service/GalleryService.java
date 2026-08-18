@@ -165,8 +165,6 @@ public class GalleryService {
         Page<GalleryPhotoEntity> result;
         if (albumId != null) {
             result = photoRepository.findByOwnerIdAndAlbumIdOrderByCreatedAtDesc(ownerId, albumId, PageRequest.of(safePage, safeSize));
-        } else if (owner) {
-            result = photoRepository.findByOwnerIdOrderByCreatedAtDesc(ownerId, PageRequest.of(safePage, safeSize));
         } else {
             result = photoRepository.findPublicTimeline(ownerId, PageRequest.of(safePage, safeSize));
         }

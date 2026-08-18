@@ -102,6 +102,14 @@ export async function reorderAlbums(albumIds: number[]): Promise<PhotoAlbum[]> {
   return res.data || [];
 }
 
+export async function uploadGalleryPhoto(file: File, albumId: number): Promise<GalleryPhoto> {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('albumId', String(albumId));
+  const res = await api.post('/api/v1/social/users/me/photos', form);
+  return res.data;
+}
+
 export async function savePhotoToAlbum(sourceUrl: string, options?: { albumId?: number; newAlbumTitle?: string }): Promise<GalleryPhoto> {
   const res = await api.post('/api/v1/social/users/me/photos/save', {
     sourceUrl: toStoredPhoto(sourceUrl) || sourceUrl,

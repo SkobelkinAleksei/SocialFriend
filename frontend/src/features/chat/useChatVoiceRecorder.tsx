@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Mic, Send, Square, Trash2 } from 'lucide-react';
+import { Mic, Pause, Play, Send, Square, Trash2 } from 'lucide-react';
 import { showAppInfoToast } from '@/shared/utils/appToast';
-import ChatVoiceBubble, { formatVoiceTime } from '@/features/chat/ChatVoiceBubble';
+import { claimChatAudio, releaseChatAudio, sliceVoiceBlob } from '@/features/chat/chatVoiceAudio';
+import { formatVoiceTime } from '@/features/chat/ChatVoiceBubble';
 
 type VoiceMode = 'idle' | 'recording' | 'preview';
 
 const MAX_MS = 5 * 60 * 1000;
 const MIN_MS = 800;
+const PEAKS = 56;
 
 function pickMime(): string {
   const options = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
@@ -19,6 +21,11 @@ export function useChatVoiceRecorder(onRecorded: (blob: Blob, durationSec: numbe
   const [busy, setBusy] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
   const [previewDuration, setPreviewDuration] = useState(1);
+  const [peaks, setPeaks] = useState<number[]>([]);
+  const [trimStart, setTrimStart] = useState(0);
+  const [trimEnd, setTrimEnd] = useState(1);
+  const [previewPlaying, setPreviewPlaying] = useState(false);
+  const [previewProgress, setPreviewProgress] = useState(0);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
@@ -29,6 +36,14 @@ export function useChatVoiceRecorder(onRecorded: (blob: Blob, durationSec: numbe
   const startingRef = useRef(false);
   const previewUrlRef = useRef('');
   const stopRef = useRef<() => void>(() => {});
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const peakTimerRef = useRef<number | null>(null);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+  const trimStartRef = useRef(0);
+  const trimEndRef = useRef(1);
+  trimStartRef.current = trimStart;
+  trimEndRef.current = trimEnd;
 
   const cleanupStream = () => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -37,13 +52,33 @@ export function useChatVoiceRecorder(onRecorded: (blob: Blob, durationSec: numbe
     chunksRef.current = [];
     if (timerRef.current) window.clearInterval(timerRef.current);
     timerRef.current = null;
+    if (peakTimerRef.current) window.clearInterval(peakTimerRef.current);
+    peakTimerRef.current = null;
+    analyserRef.current = null;
+    audioCtxRef.current?.close().catch(() => undefined);
+    audioCtxRef.current = null;
+  };
+
+  const stopPreviewAudio = () => {
+    const audio = previewAudioRef.current;
+    if (audio) {
+      audio.pause();
+      releaseChatAudio(audio);
+    }
+    setPreviewPlaying(false);
   };
 
   const revokePreview = () => {
+    stopPreviewAudio();
+    previewAudioRef.current = null;
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
     previewUrlRef.current = '';
     setPreviewUrl('');
     blobRef.current = null;
+    setPeaks([]);
+    setTrimStart(0);
+    setTrimEnd(1);
+    setPreviewProgress(0);
   };
 
   const stopToPreview = useCallback(async () => {
@@ -66,6 +101,7 @@ export function useChatVoiceRecorder(onRecorded: (blob: Blob, durationSec: numbe
       showAppInfoToast('Голосовое', 'Слишком короткое сообщение');
       setMode('idle');
       setElapsedMs(0);
+      setPeaks([]);
       return;
     }
     const url = URL.createObjectURL(blob);
@@ -75,6 +111,9 @@ export function useChatVoiceRecorder(onRecorded: (blob: Blob, durationSec: numbe
     setPreviewUrl(url);
     setPreviewDuration(durationRef.current);
     setElapsedMs(durationMs);
+    setTrimStart(0);
+    setTrimEnd(1);
+    setPreviewProgress(0);
     setMode('preview');
   }, []);
 
@@ -100,6 +139,35 @@ export function useChatVoiceRecorder(onRecorded: (blob: Blob, durationSec: numbe
       recorderRef.current = rec;
       startedAtRef.current = Date.now();
       setElapsedMs(0);
+      setPeaks(Array.from({ length: 8 }, () => 0.12));
+      setTrimStart(0);
+      setTrimEnd(1);
+      const AudioCtx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        await ctx.resume().catch(() => undefined);
+        audioCtxRef.current = ctx;
+        const source = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        analyserRef.current = analyser;
+        const data = new Uint8Array(analyser.fftSize);
+        peakTimerRef.current = window.setInterval(() => {
+          analyser.getByteTimeDomainData(data);
+          let sum = 0;
+          for (let i = 0; i < data.length; i++) {
+            const v = (data[i] - 128) / 128;
+            sum += v * v;
+          }
+          const rms = Math.min(1, Math.sqrt(sum / data.length) * 3.4);
+          setPeaks((prev) => {
+            const next = prev.length >= PEAKS ? prev.slice(1) : [...prev];
+            next.push(Math.max(0.08, rms));
+            return next;
+          });
+        }, 90);
+      }
       rec.start(120);
       setMode('recording');
       if (timerRef.current) window.clearInterval(timerRef.current);
@@ -126,16 +194,90 @@ export function useChatVoiceRecorder(onRecorded: (blob: Blob, durationSec: numbe
     setMode('idle');
   }, []);
 
+  const bindPreviewAudio = (url: string) => {
+    if (previewAudioRef.current && previewAudioRef.current.src === url) return previewAudioRef.current;
+    const audio = new Audio(url);
+    audio.preload = 'metadata';
+    previewAudioRef.current = audio;
+    audio.addEventListener('timeupdate', () => {
+      const total = audio.duration || durationRef.current || 1;
+      const start = trimStartRef.current * total;
+      const end = trimEndRef.current * total;
+      if (audio.currentTime >= end - 0.02) {
+        audio.pause();
+        audio.currentTime = start;
+        setPreviewPlaying(false);
+        setPreviewProgress(trimStartRef.current);
+        releaseChatAudio(audio);
+        return;
+      }
+      setPreviewProgress(total ? audio.currentTime / total : 0);
+    });
+    audio.addEventListener('ended', () => {
+      setPreviewPlaying(false);
+      setPreviewProgress(trimStartRef.current);
+      releaseChatAudio(audio);
+    });
+    audio.addEventListener('myraion-voice-pause', () => setPreviewPlaying(false));
+    return audio;
+  };
+
+  const togglePreview = useCallback(() => {
+    if (!previewUrlRef.current) return;
+    const audio = bindPreviewAudio(previewUrlRef.current);
+    const total = audio.duration || durationRef.current || 1;
+    if (!audio.paused) {
+      audio.pause();
+      setPreviewPlaying(false);
+      releaseChatAudio(audio);
+      return;
+    }
+    const start = trimStartRef.current * total;
+    const end = trimEndRef.current * total;
+    if (audio.currentTime < start || audio.currentTime >= end - 0.04) {
+      audio.currentTime = start;
+    }
+    claimChatAudio(audio);
+    void audio.play().then(() => setPreviewPlaying(true)).catch(() => setPreviewPlaying(false));
+  }, []);
+
+  const seekPreview = useCallback((ratio: number) => {
+    if (!previewUrlRef.current) return;
+    const audio = bindPreviewAudio(previewUrlRef.current);
+    const total = audio.duration || durationRef.current || 1;
+    const next = Math.min(trimEndRef.current, Math.max(trimStartRef.current, ratio));
+    audio.currentTime = next * total;
+    setPreviewProgress(next);
+  }, []);
+
+  const changeTrim = useCallback((start: number, end: number) => {
+    const minSpan = Math.min(0.35, MIN_MS / Math.max(elapsedMs, MIN_MS));
+    let nextStart = Math.max(0, Math.min(start, 1));
+    let nextEnd = Math.max(0, Math.min(end, 1));
+    if (nextEnd - nextStart < minSpan) {
+      if (start !== trimStartRef.current) nextStart = Math.max(0, nextEnd - minSpan);
+      else nextEnd = Math.min(1, nextStart + minSpan);
+    }
+    setTrimStart(nextStart);
+    setTrimEnd(nextEnd);
+    setPreviewProgress((prev) => Math.min(nextEnd, Math.max(nextStart, prev)));
+  }, [elapsedMs]);
+
   const send = useCallback(async () => {
     const blob = blobRef.current;
-    const duration = durationRef.current;
     if (!blob) {
       setMode('idle');
       return;
     }
+    stopPreviewAudio();
     setBusy(true);
     try {
-      await onRecorded(blob, duration);
+      const start = trimStartRef.current;
+      const end = trimEndRef.current;
+      const full = durationRef.current;
+      const duration = Math.max(1, Math.round((end - start) * full));
+      const ready = await sliceVoiceBlob(blob, start, end);
+      await onRecorded(ready, duration);
       revokePreview();
       setElapsedMs(0);
       setMode('idle');
@@ -167,88 +309,194 @@ export function useChatVoiceRecorder(onRecorded: (blob: Blob, durationSec: numbe
     busy,
     previewUrl,
     previewDuration,
+    peaks,
+    trimStart,
+    trimEnd,
+    previewPlaying,
+    previewProgress,
     recording: mode === 'recording',
     preview: mode === 'preview',
     start,
     stopToPreview,
     cancel,
     send,
+    togglePreview,
+    seekPreview,
+    changeTrim,
   };
 }
 
-function TelegramWave({ active }: { active: boolean }) {
+function VoiceWave({
+  peaks,
+  trimStart,
+  trimEnd,
+  progress,
+  interactive,
+  onSeek,
+  onTrim,
+}: {
+  peaks: number[];
+  trimStart?: number;
+  trimEnd?: number;
+  progress?: number;
+  interactive?: boolean;
+  onSeek?: (ratio: number) => void;
+  onTrim?: (start: number, end: number) => void;
+}) {
+  const bars = peaks.length ? peaks : Array.from({ length: 24 }, () => 0.18);
+  const start = trimStart ?? 0;
+  const end = trimEnd ?? 1;
+  const dragRef = useRef<'start' | 'end' | 'seek' | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  const ratioFromEvent = (clientX: number) => {
+    const rect = rootRef.current?.getBoundingClientRect();
+    if (!rect || !rect.width) return 0;
+    return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  };
+
+  useEffect(() => {
+    if (!interactive) return;
+    const onMove = (event: PointerEvent) => {
+      if (!dragRef.current) return;
+      const ratio = ratioFromEvent(event.clientX);
+      if (dragRef.current === 'start') onTrim?.(ratio, end);
+      else if (dragRef.current === 'end') onTrim?.(start, ratio);
+      else onSeek?.(ratio);
+    };
+    const onUp = () => { dragRef.current = null; };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+  }, [interactive, start, end, onSeek, onTrim]);
+
   return (
-    <>
-      <style>{`
-        @keyframes myraion-voice-bar {
-          0%, 100% { transform: scaleY(0.22); opacity: 0.35; }
-          50% { transform: scaleY(1); opacity: 1; }
+    <div
+      ref={rootRef}
+      className="relative flex-1 h-8 flex items-center gap-[2px] min-w-0 select-none"
+      onPointerDown={(event) => {
+        if (!interactive) return;
+        event.preventDefault();
+        const ratio = ratioFromEvent(event.clientX);
+        const nearStart = Math.abs(ratio - start) < 0.04;
+        const nearEnd = Math.abs(ratio - end) < 0.04;
+        if (onTrim && (nearStart || nearEnd)) {
+          dragRef.current = nearEnd && (!nearStart || Math.abs(ratio - end) <= Math.abs(ratio - start)) ? 'end' : 'start';
+          if (dragRef.current === 'start') onTrim(ratio, end);
+          else onTrim(start, ratio);
+          return;
         }
-      `}</style>
-      <div className="flex-1 h-6 flex items-center gap-[2px] overflow-hidden">
-        {Array.from({ length: 28 }).map((_, i) => (
+        dragRef.current = 'seek';
+        onSeek?.(ratio);
+      }}
+    >
+      {bars.map((value, i) => {
+        const pos = bars.length > 1 ? i / (bars.length - 1) : 0;
+        const inRange = pos >= start && pos <= end;
+        const played = (progress ?? -1) >= pos && inRange;
+        const h = 4 + value * 22;
+        return (
           <span
             key={i}
-            className="w-[2px] h-5 rounded-full bg-[#8A76B0] origin-center"
-            style={{
-              animation: active ? `myraion-voice-bar ${0.55 + (i % 5) * 0.11}s ease-in-out ${i * 0.045}s infinite` : 'none',
-              transform: active ? undefined : 'scaleY(0.28)',
-              opacity: active ? undefined : 0.35,
-            }}
+            className={`w-[2.5px] rounded-full origin-center ${played ? 'bg-[#5C4B7A]' : inRange ? 'bg-[#5C4B7A]/55' : 'bg-[#5C4B7A]/18'}`}
+            style={{ height: `${h}px` }}
           />
-        ))}
-      </div>
-    </>
+        );
+      })}
+      {interactive && (
+        <>
+          <span className="absolute top-0 bottom-0 w-[3px] rounded-full bg-[#5C4B7A]" style={{ left: `${start * 100}%` }} />
+          <span className="absolute top-0 bottom-0 w-[3px] rounded-full bg-[#5C4B7A]" style={{ left: `${end * 100}%` }} />
+        </>
+      )}
+    </div>
   );
 }
 
 export function ChatVoiceRecordingBar({
   mode,
   elapsedMs,
-  previewUrl,
+  peaks,
   previewDuration,
+  previewPlaying,
+  previewProgress,
+  trimStart,
+  trimEnd,
   busy,
   onCancel,
   onStop,
   onSend,
+  onTogglePreview,
+  onSeekPreview,
+  onTrim,
 }: {
   mode: 'recording' | 'preview';
   elapsedMs: number;
-  previewUrl?: string;
+  peaks: number[];
   previewDuration?: number;
+  previewPlaying?: boolean;
+  previewProgress?: number;
+  trimStart?: number;
+  trimEnd?: number;
   busy?: boolean;
   onCancel: () => void;
   onStop: () => void;
   onSend: () => void;
+  onTogglePreview: () => void;
+  onSeekPreview: (ratio: number) => void;
+  onTrim: (start: number, end: number) => void;
 }) {
+  const start = trimStart ?? 0;
+  const end = trimEnd ?? 1;
+  const full = previewDuration || elapsedMs / 1000;
+  const shown = mode === 'preview' ? Math.max(1, (end - start) * full) : elapsedMs / 1000;
+
   return (
     <div className="flex items-center gap-2 w-full">
       <button
         type="button"
         onClick={onCancel}
         disabled={busy}
-        className="p-2 rounded-lg text-rose-500 hover:bg-rose-50 disabled:opacity-40"
+        className="p-2 rounded-full text-rose-500 hover:bg-rose-50 disabled:opacity-40"
         title="Удалить"
       >
         <Trash2 className="w-4 h-4" />
       </button>
-      <div className="flex-1 flex items-center gap-3 rounded-xl px-3 py-2 bg-[#F7F1EA] border border-[#1A1916]/10 min-w-0">
-        {mode === 'preview' && previewUrl ? (
-          <ChatVoiceBubble url={previewUrl} duration={previewDuration} />
+      <div className="flex-1 flex items-center gap-2.5 rounded-full px-3 py-2 bg-[#F4EEF8] min-w-0">
+        {mode === 'recording' ? (
+          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
         ) : (
-          <>
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
-            <span className="text-sm font-semibold text-rose-600 tabular-nums w-10">{formatVoiceTime(elapsedMs / 1000)}</span>
-            <TelegramWave active={mode === 'recording'} />
-          </>
+          <button
+            type="button"
+            onClick={onTogglePreview}
+            className="w-8 h-8 rounded-full bg-[#5C4B7A] text-white flex items-center justify-center shrink-0"
+            title="Прослушать"
+          >
+            {previewPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
+          </button>
         )}
+        <VoiceWave
+          peaks={peaks}
+          trimStart={mode === 'preview' ? start : 0}
+          trimEnd={mode === 'preview' ? end : 1}
+          progress={mode === 'preview' ? previewProgress : undefined}
+          interactive={mode === 'preview'}
+          onSeek={onSeekPreview}
+          onTrim={onTrim}
+        />
+        <span className={`text-xs font-semibold tabular-nums shrink-0 w-10 ${mode === 'recording' ? 'text-rose-600' : 'text-[#5C4B7A]'}`}>
+          {formatVoiceTime(shown)}
+        </span>
       </div>
       {mode === 'recording' ? (
         <button
           type="button"
           onClick={onStop}
-          className="p-2.5 rounded-xl bg-rose-500 text-white hover:bg-rose-600"
-          title="Остановить и прослушать"
+          className="w-10 h-10 rounded-full bg-rose-500 text-white hover:bg-rose-600 flex items-center justify-center"
+          title="Стоп"
         >
           <Square className="w-3.5 h-3.5 fill-current" />
         </button>
@@ -257,10 +505,10 @@ export function ChatVoiceRecordingBar({
           type="button"
           onClick={onSend}
           disabled={busy}
-          className="p-2.5 rounded-xl bg-[#5C4B7A] text-white hover:bg-[#4c3d68] disabled:opacity-40"
+          className="w-10 h-10 rounded-full bg-[#5C4B7A] text-white hover:bg-[#4c3d68] disabled:opacity-40 flex items-center justify-center"
           title="Отправить"
         >
-          <Send className="w-4 h-4" />
+          <Send className="w-4 h-4 ml-0.5" />
         </button>
       )}
     </div>

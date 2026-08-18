@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { uploadChatFile, uploadChatPhoto } from '@/shared/lib/api';
 import { resolveChatPhotoUrl, toStoredChatPhoto } from '@/features/chat/chatPhotos';
 import { showAppInfoToast } from '@/shared/utils/appToast';
@@ -31,14 +31,16 @@ export function useChatMediaAttach(maxPhotos = 10, maxFiles = 5) {
   const [pendingFiles, setPendingFiles] = useState<PendingChatFile[]>([]);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const photosRef = useRef<PendingChatPhoto[]>([]);
+  photosRef.current = pendingPhotos;
 
   const openPhotoPicker = () => photoInputRef.current?.click();
   const openFilePicker = () => fileInputRef.current?.click();
 
-  const addPhotos = async (fileList: FileList | null) => {
+  const addPhotos = useCallback(async (fileList: FileList | File[] | null) => {
     if (!fileList || fileList.length === 0) return;
     const files = Array.from(fileList);
-    const remaining = maxPhotos - pendingPhotos.length;
+    const remaining = maxPhotos - photosRef.current.length;
     if (remaining <= 0) {
       showAppInfoToast('Фото', `Можно прикрепить не больше ${maxPhotos} фото`);
       return;
@@ -48,7 +50,7 @@ export function useChatMediaAttach(maxPhotos = 10, maxFiles = 5) {
     }
     const slice = files.slice(0, remaining);
     for (const file of slice) {
-      if (!file.type.startsWith('image/')) {
+      if (!file.type.startsWith('image/') && file.type !== '') {
         showAppInfoToast('Фото', 'Можно выбрать только изображение');
         continue;
       }
@@ -71,7 +73,7 @@ export function useChatMediaAttach(maxPhotos = 10, maxFiles = 5) {
         URL.revokeObjectURL(preview);
       }
     }
-  };
+  }, [maxPhotos]);
 
   const addFiles = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
