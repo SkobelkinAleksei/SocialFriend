@@ -23,18 +23,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class PublicUserController {
     private final UserService userService;
     private final EmailOtpService emailOtpService;
+    private final EmailOtpMailQueue emailOtpMailQueue;
 
     @PostMapping("/signUp")
     public ResponseEntity<UserDto> signUp(
             @Valid @RequestBody RegistrationUserDto registrationUserDto
     ) {
         UserDto created = userService.signUp(registrationUserDto);
-        try {
-            emailOtpService.sendVerifyCode(registrationUserDto.getEmail());
-        } catch (Exception ex) {
-            log.warn("[Регистрация] Не отправили код подтверждения на {}: {}",
-                    registrationUserDto.getEmail(), ex.getMessage());
-        }
+        log.info("[Регистрация] Ставим письмо с кодом в очередь на {}", registrationUserDto.getEmail());
+        emailOtpMailQueue.sendVerifyAfterSignup(registrationUserDto.getEmail());
         return ResponseEntity.ok().body(created);
     }
 

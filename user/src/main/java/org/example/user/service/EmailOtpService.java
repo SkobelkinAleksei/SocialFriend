@@ -3,6 +3,7 @@ package org.example.user.service;
 import com.example.common.kafka.UserEmailVerifiedEvent;
 import com.example.common.kafka.UserPasswordUpdatedEvent;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.user.entity.EmailOtpEntity;
 import org.example.user.entity.EmailOtpPurpose;
 import org.example.user.entity.UserEntity;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EmailOtpService {
@@ -37,9 +39,19 @@ public class EmailOtpService {
     public void sendVerifyCode(String rawEmail) {
         String email = normalize(rawEmail);
         UserEntity user = userRepository.findByEmailIgnoreCase(email).orElse(null);
-        if (user == null || !user.isActiveAccount() || Boolean.TRUE.equals(user.getEmailVerified())) {
+        if (user == null) {
+            log.warn("[Почта] Код не шлём: нет пользователя {}", email);
             return;
         }
+        if (!user.isActiveAccount()) {
+            log.warn("[Почта] Код не шлём: аккаунт неактивен {}", email);
+            return;
+        }
+        if (Boolean.TRUE.equals(user.getEmailVerified())) {
+            log.warn("[Почта] Код не шлём: почта уже подтверждена {}", email);
+            return;
+        }
+        log.info("[Почта] Отправляем код подтверждения на {}", email);
         issue(email, EmailOtpPurpose.VERIFY,
                 "Код подтверждения — На районе",
                 "Ваш код подтверждения почты в «На районе»: %s\n\nДействует 20 минут. Если это не вы — просто удалите письмо.");

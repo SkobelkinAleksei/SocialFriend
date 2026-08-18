@@ -24,6 +24,7 @@ public interface UserMapper {
     @Mapping(target = "termsAcceptedAt", ignore = true)
     @Mapping(target = "termsVersion", ignore = true)
     @Mapping(target = "platformRole", ignore = true)
+    @Mapping(target = "emailVerified", ignore = true)
     @Mapping(target = "reputation", ignore = true)
     @Mapping(target = "settings", ignore = true)
     UserEntity toEntity(RegistrationUserDto userDto);
