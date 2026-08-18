@@ -38,7 +38,7 @@ input[type='time']::-webkit-calendar-picker-indicator {
 }
 
 html, body, #root, button, input, textarea, select {
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Manrope', system-ui, sans-serif;
     font-weight: 400;
     color: var(--ink);
 }
@@ -58,16 +58,8 @@ html, body, #root, button, input, textarea, select {
     }
 }
 
-.font-thin, .font-extralight, .font-light, .font-normal,
-.font-medium, .font-semibold {
-    font-weight: 400 !important;
-}
-.font-bold, .font-extrabold, .font-black {
-    font-weight: 700 !important;
-}
-
 .myraion-display {
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Manrope', system-ui, sans-serif;
     font-weight: 700;
 }
 
@@ -110,7 +102,7 @@ html, body, #root, button, input, textarea, select {
     box-shadow: none;
 }
 .myraion-h1 {
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Manrope', system-ui, sans-serif;
     font-weight: 700;
     font-size: 2.5rem;
     line-height: 0.95;
@@ -142,6 +134,7 @@ html, body, #root, button, input, textarea, select {
 .district-map .leaflet-container {
     overscroll-behavior: none;
     touch-action: pan-x pan-y;
+    font-family: 'Manrope', system-ui, sans-serif;
 }
 .district-map .leaflet-control-zoom {
     border: none;
